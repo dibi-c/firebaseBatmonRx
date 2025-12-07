@@ -400,7 +400,9 @@
             authDomain: "batmon-5c279.firebaseapp.com",
             databaseURL: "https://batmon-5c279-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "batmon-5c279",
-            // ... parameter lainnya
+            storageBucket: "batmon-5c279.firebasestorage.app",
+            messagingSenderId: "718766895236",
+            appId: "1:718766895236:web:b5dd36e93aaa114bcd52d1"
         };
 
         // 2. Inisialisasi Firebase
@@ -450,8 +452,8 @@
                                  // --- UI Elements ---
         statusMessage.textContent = data.status_message;
         deviceInfo.textContent = data.device_info;
-       // connectButton.textContent = data.connect_button;
-       // disconnectButton.textContent = data.disconnect_button;
+        connectButton.textContent = data.connect_button;
+        disconnectButton.textContent = data.disconnect_button;
         errorBox.textContent = data.error_box;
         errorDetails.textContent = data.error_details;
 
