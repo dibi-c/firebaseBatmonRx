@@ -447,27 +447,52 @@
 
                 // Cek apakah ada data
                 if (data) {
+                                 // --- UI Elements ---
+        statusMessage.textContent = data.status_message;
+        deviceInfo.textContent = data.device_info;
+        connectButton.textContent = data.connect_button;
+        disconnectButton.textContent = data.disconnect_button;
+        errorBox.textContent = data.error_box;
+        errorDetails.textContent = data.error_details;
 
-                    // Perbarui elemen HTML dengan data yang diterima
-                    // Gunakan operator || untuk fallback ke nilai default jika data tidak ada
-                    totalVoltageElement.textContent = data.Total_Voltage;
-                    // Kita gabungkan Min/Max menjadi satu string jika data dikirim terpisah
-                    // Karena di contoh pengiriman sebelumnya dikirim sebagai string gabungan, 
-                    // kita ambil key-nya:
-                    minMaxVoltageElement.textContent = data.Min_Max_Voltage; 
-
-                    currentElement.textContent = data.Current_Value;
-                    powerElement.textContent = data.Power_Value;
-                    
-                    socValueElement.textContent = data.State_of_Charge_SOC;
-                    sohValueElement.textContent = data.State_of_Health_SOH ;
-                    tempValueElement.textContent = data.Temperature ;
-                    remainingCapacityElement.textContent = data.Remaining_Capacity ;
-                    
-                    safetyMessageElement.textContent = data.Safety_Message ;
-                    
-                    totalChargeWhElement.textContent = data.Total_Charge_Wh ;
-                    totalDischargeWhElement.textContent = data.Total_Discharge_Wh ;
+                     // Data Utama
+       summaryMinMaxElement.textContent = data.sum_minmax;
+       totalVoltageElement.textContent = data.Total_Voltage;
+       minMaxVoltageElement.textContent = data.Min_Max_Voltage;
+       currentElement.textContent = data.Current_Value;
+       minMaxCurrentElement.textContent = data.Min_Max_Current;
+       powerElement.textContent = data.Power_Value;
+       minMaxPowerElement.textContent = data.Min_Max_Power;
+                  
+        cellElements[0].textContent = data.Vcel1;
+        cellElements[1].textContent = data.Vcel2;
+        cellElements[2].textContent = data.Vcel3;
+        cellElements[3].textContent = data.Vcel4;
+        
+        // Kapasitas dan Status Baterai
+        capacityUsedElement.textContent = data.Capacity_Used';
+        remainingCapacityElement.textContent = data.Remaining_Capacity ;
+        deltaVElement.textContent = data.Delta_V;
+        socValueElement.textContent = data.State_of_Charge_SOC;
+        socProgressElement.textContent = data.soc_progress;
+        sohValueElement.textContent = data.State_of_Health_SOH ;
+        sohProgressElement.textContent = data.soh_progress;
+       
+        
+        // Suhu dan Waktu
+        tempValueElement.textContent = data.Temperature ;
+        timeRemainingElement.textContent = data.Time_Remaining;
+        
+        // Status Keamanan
+        safetyStatusText.textContent = data.Safety_Status_Text;
+        safetyMessageElement.textContent = data.Safety_Message ;
+        safetyStatusSection.textContent = data.safety_status_section;
+        
+        // Data Tambahan (misalnya Total Energi)
+        totalChargeWhElement.textContent = data.Total_Charge_Wh ;
+        totalDischargeWhElement.textContent = data.Total_Discharge_Wh ;
+        extraParametersContainer.textContent = data.extra_param_container;
+        chartStatusElement.textContent = data.chart_stat_el;
 
                 } else {
                      console.log( "Data kosong di Firebase path ini.");
