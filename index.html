@@ -518,7 +518,7 @@
             userInfo.textContent = "";
             // Stop listener jika ada
             if (firebaseDB) {
-                firebaseDB.ref('realtime_data').off();
+                firebaseDB.ref('current_data').off();
             }
         }
 
@@ -539,7 +539,7 @@
         function listenToRealtimeData() {
             if (!firebaseDB) return;
             
-            const currentDataRef = firebaseDB.ref('realtime_data');
+            const currentDataRef = firebaseDB.ref('current_data');
             
             currentDataRef.on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -564,7 +564,7 @@
                     errorBox.classList.add('hidden');
                 } else {
                     statusMessage.textContent = "Terkoneksi | Menunggu data BMS pertama...";
-                    errorDetails.textContent = "Node 'realtime_data' kosong atau belum diisi oleh perangkat BMS.";
+                    errorDetails.textContent = "Node 'current_data' kosong atau belum diisi oleh perangkat BMS.";
                     errorBox.classList.remove('hidden');
                 }
             }, (error) => {
@@ -848,7 +848,7 @@
 
             try {
                 // Ambil semua log historis dari Firebase Realtime Database
-                const snapshot = await firebaseDB.ref('historical_logs/-OfxjQVhoyQPQVE-QpUV').once('value');
+                const snapshot = await firebaseDB.ref('history_logs').once('value');
                 const logsObject = snapshot.val(); 
 
                 if (!logsObject) {
