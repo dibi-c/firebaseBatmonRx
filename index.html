@@ -159,30 +159,11 @@
                         <input type="email" id="email" required placeholder="Masukkan Email"
                             class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary dark:bg-gray-700 dark:text-gray-200">
                     </div>
-                    
-                    <div class="mb-2">
+                    <div class="mb-6">
                         <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                        <div class="mt-1 flex relative"> 
-                            <input type="password" id="password" required placeholder="Masukkan Password"
-                                class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary dark:bg-gray-700 dark:text-gray-200 pr-10">
-                            <button type="button" id="toggle-password" onclick="togglePasswordVisibility()" 
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-                                <svg id="eye-icon-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.9 3.17m-6.42-3.42a3 3 0 1 1-4.24-4.24"/></svg>
-                                <svg id="eye-icon-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 hidden"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-                            </button>
-                        </div>
+                        <input type="password" id="password" required placeholder="Masukkan Password"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary dark:bg-gray-700 dark:text-gray-200">
                     </div>
-                    
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center">
-                            <input id="remember-me" name="remember-me" type="checkbox"
-                                class="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary dark:bg-gray-700 dark:border-gray-600">
-                            <label for="remember-me" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                                Ingat saya
-                            </label>
-                        </div>
-                    </div>
-
                     <button id="login-button" type="submit"
                         class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200">
                         Login
@@ -348,9 +329,6 @@
 
         // Kunci untuk menyimpan tema
         const THEME_KEY = 'bms_theme'; 
-        // Kunci untuk Login
-        const REMEMBER_ME_KEY = 'bms_remember_me';
-        const EMAIL_KEY = 'bms_login_email';
         
         // Konstanta interval log yang dipakai oleh BMS (perlu disamakan dengan hardware)
         const BMS_LOG_INTERVAL_MS = 60000; // 1 menit (sesuai dengan log di versi sebelumnya)
@@ -362,10 +340,6 @@
         const loginMessage = document.getElementById('login-message');
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
-        const rememberMeCheckbox = document.getElementById('remember-me'); // NEW
-        const togglePasswordButton = document.getElementById('toggle-password'); // NEW
-        const eyeIconOpen = document.getElementById('eye-icon-open'); // NEW
-        const eyeIconClosed = document.getElementById('eye-icon-closed'); // NEW
         const statusMessage = document.getElementById('status-message');
         const userInfo = document.getElementById('user-info');
         const errorBox = document.getElementById('error-box');
@@ -400,7 +374,7 @@
 
         
         // --- DEFINISI SVG ICONS OFFLINE & DATA MAP (SAMA SEPERTI SEBELUMNYA) ---
-        const SVG_ICONS = { 
+        const SVG_ICONS = { /* ... sama seperti sebelumnya ... */
             THERMOMETER: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
             HEART: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
             FLASH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
@@ -433,7 +407,7 @@
             { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, iconKey: 'FLAME', key: 'relay_discharge_status' },
             { label: 'SOH (Rata-rata)', unit: '%', index: 16, showInExtra: false, key: 'soh_avg' },
         ];
-        const PERIOD_CONFIG = { 
+        const PERIOD_CONFIG = { /* ... sama seperti sebelumnya ... */
             '1h': { durationMs: 3600 * 1000, points: 12, label: '1 Jam' }, 
             '6h': { durationMs: 6 * 3600 * 1000, points: 24, label: '6 Jam' }, 
             '12h': { durationMs: 12 * 3600 * 1000, points: 24, label: '12 Jam' }, 
@@ -474,6 +448,7 @@
         // --- FUNGSI UTILITY (SAMA SEPERTI SEBELUMNYA) ---
 
         function formatTime(hours) {
+            // ... (sama seperti sebelumnya)
             if (!isFinite(hours) || hours <= 0) { return "N/A"; }
             const totalSeconds = hours * 3600;
             const roundedSeconds = Math.round(totalSeconds);
@@ -486,42 +461,6 @@
             if (s > 0 || (h === 0 && m === 0)) { if (roundedSeconds > 0) { result += `${s}s`; } }
             return result.trim() || "<1s";
         }
-        
-        
-        // --- NEW FUNCTION: PASSWORD TOGGLE ---
-        function togglePasswordVisibility() {
-            const passwordField = document.getElementById('password');
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                eyeIconClosed.classList.add('hidden');
-                eyeIconOpen.classList.remove('hidden');
-            } else {
-                passwordField.type = 'password';
-                eyeIconOpen.classList.add('hidden');
-                eyeIconClosed.classList.remove('hidden');
-            }
-        }
-
-        // --- NEW FUNCTION: LOAD/SAVE CREDENTIALS ---
-        function loadCredentials() {
-            const isRemembered = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
-            if (isRemembered) {
-                emailInput.value = localStorage.getItem(EMAIL_KEY) || '';
-                rememberMeCheckbox.checked = true;
-                // Tidak menyimpan password untuk alasan keamanan
-            }
-        }
-
-        function saveCredentials(email) {
-            if (rememberMeCheckbox.checked) {
-                localStorage.setItem(REMEMBER_ME_KEY, 'true');
-                localStorage.setItem(EMAIL_KEY, email);
-            } else {
-                localStorage.removeItem(REMEMBER_ME_KEY);
-                localStorage.removeItem(EMAIL_KEY);
-            }
-        }
-
         
         // --- FUNGSI FIREBASE AUTHENTICATION ---
         
@@ -538,7 +477,6 @@
                 .then((userCredential) => {
                     // Berhasil login. onAuthStateChanged akan menangani tampilan dashboard.
                     loginMessage.textContent = "Login berhasil!";
-                    saveCredentials(email); // Simpan email jika "Ingat saya" dicentang
                 })
                 .catch((error) => {
                     let errorMessage;
@@ -565,8 +503,6 @@
                 firebaseAuth.signOut().then(() => {
                     // Berhasil logout. onAuthStateChanged akan menangani tampilan login.
                     console.log("Logout berhasil.");
-                    // Opsional: bersihkan input password saat logout
-                    passwordInput.value = '';
                 }).catch((error) => {
                     console.error("Logout Error:", error);
                 });
@@ -582,7 +518,7 @@
             userInfo.textContent = "";
             // Stop listener jika ada
             if (firebaseDB) {
-                firebaseDB.ref('latest_dashboard_data').off();
+                firebaseDB.ref('current_data').off();
             }
         }
 
@@ -603,12 +539,14 @@
         function listenToRealtimeData() {
             if (!firebaseDB) return;
             
-            const currentDataRef = firebaseDB.ref('latest_dashboard_data');
+            const currentDataRef = firebaseDB.ref('current_data');
             
             currentDataRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 
                 if (data) {
+                    // Konversi objek data Firebase (dengan keys seperti 'total_voltage', 'soc')
+                    // menjadi array 17 elemen (values) seperti yang diharapkan updateDashboard.
                     
                     const values = [];
                     // Masukkan data ke array sesuai urutan index di ALL_DATA_MAP
@@ -626,7 +564,7 @@
                     errorBox.classList.add('hidden');
                 } else {
                     statusMessage.textContent = "Terkoneksi | Menunggu data BMS pertama...";
-                    errorDetails.textContent = "Node 'latest_dashboard_data' kosong atau belum diisi oleh perangkat BMS.";
+                    errorDetails.textContent = "Node 'current_data' kosong atau belum diisi oleh perangkat BMS.";
                     errorBox.classList.remove('hidden');
                 }
             }, (error) => {
@@ -637,9 +575,11 @@
             });
         }
         
-        // --- FUNGSI UPDATE DASHBOARD (LOGIKA SAMA) ---
+        // --- FUNGSI UPDATE DASHBOARD (SAMA SEPERTI SEBELUMNYA, DENGAN SEDIKIT PENYESUAIAN) ---
         
         function updateDashboard(values) {
+            // ... (Semua logika min/max, perhitungan deltaV, pewarnaan sel, 
+            // format waktu, dan update UI utama SAMA seperti kode sebelumnya) ...
             
             const currentTotalVoltage = values[DATA_INDICES.TOTAL_VOLTAGE];
             const currentCurrent = values[DATA_INDICES.CURRENT];
@@ -811,7 +751,7 @@
         }
 
 
-        // --- FUNGSI GRAFIK DARI FIREBASE LOGS (LOGIKA SAMA) ---
+        // --- FUNGSI GRAFIK DARI FIREBASE LOGS ---
         
         function selectPeriod(period) {
             selectedPeriod = period;
@@ -837,6 +777,7 @@
          * Mengelompokkan log Power (W) yang diambil dari Firebase
          */
         function aggregateEnergyData(logs, durationMs, numPoints) {
+            // ... (sama persis dengan logic aggregation sebelumnya) ...
             if (logs.length === 0 || numPoints === 0) {
                 return { labels: Array(numPoints).fill('N/A'), chargeData: Array(numPoints).fill(0), dischargeData: Array(numPoints).fill(0), totalChargeWh: 0, totalDischargeWh: 0 };
             }
@@ -858,7 +799,6 @@
                     let binIndex = Math.floor((log.timestamp - startTime) / binDurationMs);
                     if (binIndex >= numPoints) { binIndex = numPoints - 1; } else if (binIndex < 0) { return; } 
 
-                    // Gunakan 'power_W' dari log historis
                     const power = log.power_W;
                     const wh = Math.abs(power) * timeIntervalHours;
 
@@ -908,7 +848,7 @@
 
             try {
                 // Ambil semua log historis dari Firebase Realtime Database
-                const snapshot = await firebaseDB.ref('historical_power_logs').once('value');
+                const snapshot = await firebaseDB.ref('history_logs').once('value');
                 const logsObject = snapshot.val(); 
 
                 if (!logsObject) {
@@ -940,9 +880,10 @@
             }
         }
         
-        // --- FUNGSI LAIN (TEMA & CHART RENDER SAMA) ---
+        // --- FUNGSI LAIN (SAMA SEPERTI SEBELUMNYA) ---
         
         function updateChartColors(isDark) {
+            // ... (sama seperti sebelumnya)
             if (!whChart) return; 
             const textColor = isDark ? '#f3f4f6' : '#1f2937'; 
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
@@ -955,16 +896,16 @@
         }
         
         function applyTheme(isDark) {
+            // ... (sama seperti sebelumnya)
             const body = document.body;
-            if (isDark) { body.classList.add('dark'); if (themeIcon) themeIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>'; } 
-            else { body.classList.remove('dark'); if (themeIcon) themeIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>'; }
-            // Perlu update UI card setelah mengubah tema
-            // Ini akan dipicu oleh updateDashboard, tapi jika tidak ada data baru, panggil selectPeriod lagi untuk refresh chart.
-            // Panggil selectPeriod(selectedPeriod);
+            if (isDark) { body.classList.add('dark'); if (themeIcon) themeIcon.textContent = '🌙'; } 
+            else { body.classList.remove('dark'); if (themeIcon) themeIcon.textContent = '☀️'; }
             updateChartColors(isDark);
+            selectPeriod(selectedPeriod);
         }
 
         function toggleTheme() {
+            // ... (sama seperti sebelumnya)
             const isDark = document.body.classList.contains('dark');
             const newTheme = isDark ? 'light' : 'dark';
             localStorage.setItem(THEME_KEY, newTheme);
@@ -972,6 +913,7 @@
         }
 
         function loadTheme() {
+            // ... (sama seperti sebelumnya)
             const savedTheme = localStorage.getItem(THEME_KEY);
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const initialDark = (savedTheme === 'dark') || (savedTheme === null && prefersDark);
@@ -979,6 +921,7 @@
         }
 
         function renderEnergyCharts(data, periodLabel) { 
+            // ... (sama seperti sebelumnya)
             totalChargeWhElement.textContent = `${data.totalChargeWh.toFixed(3)} Wh`;
             totalDischargeWhElement.textContent = `${data.totalDischargeWh.toFixed(3)} Wh`;
             const ctx = document.getElementById('whCombinedCanvas').getContext('2d');
@@ -1020,7 +963,6 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             loadTheme();
-            loadCredentials(); // Panggil fungsi untuk memuat email jika "Ingat saya" aktif
             
             if (!firebaseAuth) {
                 renderLoginPage();
