@@ -848,7 +848,7 @@
 
             try {
                 // Ambil semua log historis dari Firebase Realtime Database
-                const snapshot = await firebaseDB.ref('historical_logs').once('value');
+                const snapshot = await firebaseDB.ref('historical_logs/-OfxjQVhoyQPQVE-QpUV').once('value');
                 const logsObject = snapshot.val(); 
 
                 if (!logsObject) {
