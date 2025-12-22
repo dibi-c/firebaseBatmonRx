@@ -175,10 +175,13 @@
         <div id="dashboard-container" class="hidden">
             <header class="flex justify-between items-center mb-6 p-3 rounded-lg bg-white dark:bg-gray-800 shadow-md border-b">
                 <div id="status-display" class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    <span id="status-message">Menunggu Data Realtime Firebase...</span>
-                    <span id="user-info" class="text-xs text-gray-400 dark:text-gray-600 block italic"></span>
-                    <span id="device-info" class="text-xs text-gray-400 dark:text-gray-600 block italic"></span>
-                </div>
+                <span id="status-message">Menunggu Data Realtime Firebase...</span>
+            <div class="flex items-center gap-2">
+              <span id="user-info" class="text-xs text-gray-400 dark:text-gray-600 italic"></span>
+              <span class="text-xs text-gray-400 dark:text-gray-600 italic">Device: </span>
+              <span id="device-info" class="text-xs text-gray-400 dark:text-gray-600 italic"></span>
+         </div>
+    </div>
                 <div class="flex space-x-2">
                     <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 p-2 rounded-full flex items-center justify-center bg-gray-200 text-yellow-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-yellow-300 dark:hover:bg-gray-600 transition-all duration-300 shadow-md">
                         <span id="theme-icon" class="text-xl transition-transform duration-300" role="img" aria-label="Dark/Light Mode Toggle"></span>
@@ -581,6 +584,17 @@
                         values[map.index] = data[map.key] || 0.0;
                     });
                     deviceInfo.textContent =  data['deviceName'];
+                    safetyStatusText.textContent =  data['safety_status_text'];
+                    safetyMessage.textContent =  data['safety_message'];
+                    
+                     // Memproses data Voltage (Tegangan)
+minMaxVoltageElement.textContent = `Min: ${Number(data['min_total_voltage']).toFixed(3)} V | Max: ${Number(data['max_total_voltage']).toFixed(3)} V`;
+
+// Memproses data Current (Arus)
+minMaxCurrentElement.textContent = `Min: ${Number(data['min_current']).toFixed(3)} A | Max: ${Number(data['max_current']).toFixed(3)} A`;
+
+// Memproses data Power (Daya)
+minMaxPowerElement.textContent = `Min: ${Number(data['min_power']).toFixed(3)} W | Max: ${Number(data['max_power']).toFixed(3)} W`;
                     
                     // Pastikan relay status tetap 0 atau 1
                     values[DATA_INDICES.STATUS_CHARGE] = data['relay_charge_status'] === 1.0 ? 1.0 : 0.0;
@@ -616,17 +630,17 @@
             if (currentTotalVoltage > 1.0) { minTotalVoltage = Math.min(minTotalVoltage, currentTotalVoltage); maxTotalVoltage = Math.max(maxTotalVoltage, currentTotalVoltage); }
             const minVDisplay = minTotalVoltage !== Infinity ? minTotalVoltage.toFixed(2) : '0.00';
             const maxVDisplay = maxTotalVoltage !== -Infinity ? maxTotalVoltage.toFixed(2) : '0.00';
-            minMaxVoltageElement.textContent = `Min: ${minVDisplay} V | Max: ${maxVDisplay} V`;
+           // minMaxVoltageElement.textContent = `Min: ${minVDisplay} V | Max: ${maxVDisplay} V`;
 
             if (currentCurrent !== 0 || currentTotalVoltage > 1.0) { minCurrent = Math.min(minCurrent, currentCurrent); maxCurrent = Math.max(maxCurrent, currentCurrent); }
             const minADisplay = minCurrent !== Infinity ? minCurrent.toFixed(2) : '0.00';
             const maxADisplay = maxCurrent !== -Infinity ? maxCurrent.toFixed(2) : '0.00';
-            minMaxCurrentElement.textContent = `Min: ${minADisplay} A | Max: ${maxADisplay} A`;
+            //minMaxCurrentElement.textContent = `Min: ${minADisplay} A | Max: ${maxADisplay} A`;
 
             if (currentPower !== 0 || currentTotalVoltage > 1.0) { minPower = Math.min(minPower, currentPower); maxPower = Math.max(maxPower, currentPower); }
             const minWDisplay = minPower !== Infinity ? minPower.toFixed(2) : '0.00';
             const maxWDisplay = maxPower !== -Infinity ? maxPower.toFixed(2) : '0.00';
-            minMaxPowerElement.textContent = `Min: ${minWDisplay} W | Max: ${maxWDisplay} W`;
+            //minMaxPowerElement.textContent = `Min: ${minWDisplay} W | Max: ${maxWDisplay} W`;
 
             // --- 2. Update Detail Sel & Hitung Delta V ---
             const cellVoltages = [
@@ -772,8 +786,10 @@
             
             safetyStatusSection.className = `status-box mb-6 border ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
             safetyStatusSection.classList.remove('hidden'); 
-            safetyStatusText.textContent = statusText;
-            safetyMessage.textContent = safetyMsg;
+           // safetyStatusText.textContent = statusText;
+           // safetyMessage.textContent = safetyMsg;
+            
+            
             
         }
 
