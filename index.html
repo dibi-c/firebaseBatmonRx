@@ -177,6 +177,7 @@
                 <div id="status-display" class="text-sm font-medium text-gray-600 dark:text-gray-400">
                     <span id="status-message">Menunggu Data Realtime Firebase...</span>
                     <span id="user-info" class="text-xs text-gray-400 dark:text-gray-600 block italic"></span>
+                    <span id="device-info" class="text-xs text-gray-400 dark:text-gray-600 block italic"></span>
                 </div>
                 <div class="flex space-x-2">
                     <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 p-2 rounded-full flex items-center justify-center bg-gray-200 text-yellow-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-yellow-300 dark:hover:bg-gray-600 transition-all duration-300 shadow-md">
@@ -343,6 +344,7 @@
         const passwordInput = document.getElementById('password');
         const statusMessage = document.getElementById('status-message');
         const userInfo = document.getElementById('user-info');
+        const deviceInfo = document.getElementById('device-info');
         const errorBox = document.getElementById('error-box');
         const errorDetails = document.getElementById('error-details');
         const themeIcon = document.getElementById('theme-icon'); 
@@ -374,22 +376,36 @@
         const totalDischargeWhElement = document.getElementById('total-discharge-wh');
 
         
-        // --- DEFINISI SVG ICONS OFFLINE & DATA MAP (SAMA SEPERTI SEBELUMNYA) ---
-        const SVG_ICONS = { /* ... sama seperti sebelumnya ... */
+         // --- DEFINISI SVG ICONS OFFLINE ---
+        const SVG_ICONS = {
+            // Thermometer (Suhu)
             THERMOMETER: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
+            // Heart (Kesehatan SOH)
             HEART: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            // Flash/Zap (Relay Pengisian) - Simbol petir untuk arus/listrik
             FLASH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-            FLAME: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 15.5A2.5 2.5 0 0 0 17.5 13c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM8.5 8.5A2.5 2.5 0 0 0 11 6c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 9.5A2.5 2.5 0 0 0 17.5 7c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5z"/></svg>'
+            // Flame (Relay Pengurasan) - Simbol api untuk panas/discharge
+            FLAME: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 15.5A2.5 2.5 0 0 0 17.5 13c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM8.5 8.5A2.5 2.5 0 0 0 11 6c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 9.5A2.5 2.5 0 0 0 17.5 7c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5z"/></svg>',
+
+            // Opsi Alternatif: Battery Half dengan isi blok solid (lebih mudah terlihat)
+            BATTERY_HALF_SOLID: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect><line x1="22" y1="11" x2="22" y2="13"></line><rect x="5" y="10" width="5" height="4" fill="currentColor" stroke="none"></rect></svg>',
+           // Alternatif: Bolt dengan lingkaran (sering digunakan untuk total energi/konsumsi)
+            ENERGY: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M13 6l-5 8h4v4l5-8h-4V6z"/></svg>'
         };
+
+        // Pemetaan Index Data 
         const DATA_INDICES = {
             TOTAL_VOLTAGE: 0, CELL_1: 1, CELL_2: 2, CELL_3: 3, CELL_4: 4, 
             CURRENT: 5, POWER: 6, CAP_MAX: 7, SOC: 8,
             TEMP_1: 9, TEMP_2: 10, 
             CAP_USED: 11,
             SOH_1: 12, SOH_2: 13, 
-            STATUS_CHARGE: 14, STATUS_DISCHARGE: 15, SOH: 16,
+            STATUS_CHARGE: 14, STATUS_DISCHARGE: 15, SOH: 16, WHPOS: 17, WHNEG: 18, CC: 19,
         };
+
+        // Definisi semua 16 data, menggunakan 'iconKey' untuk merujuk ke SVG_ICONS
         const ALL_DATA_MAP = [
+            // Dikecualikan dari 'Tambahan' (sudah di Ringkasan atau Inti)
             { label: 'Tegangan Total', unit: 'V', index: 0, showInExtra: false, key: 'total_voltage' },
             { label: 'Tegangan Sel 1', unit: 'V', index: 1, showInExtra: false, key: 'cell_1_voltage' },
             { label: 'Tegangan Sel 2', unit: 'V', index: 2, showInExtra: false, key: 'cell_2_voltage' },
@@ -402,12 +418,21 @@
             { label: 'Suhu Baterai', unit: '°C', index: 9, showInExtra: true, iconKey: 'THERMOMETER', key: 'temp_battery' }, 
             { label: 'Suhu Mosfet', unit: '°C', index: 10, showInExtra: true, iconKey: 'THERMOMETER', key: 'temp_mosfet' }, 
             { label: 'Kapasitas Tersisa (Remaining)', unit: 'Ah', index: 11, showInExtra: false, key: 'capacity_remaining' },
-            { label: 'Kap. Pengisian', unit: 'Ah', index: 12, showInExtra: true, iconKey: 'HEART', key: 'soh_charge' },
-            { label: 'Kap. Pengurasan', unit: 'Ah', index: 13, showInExtra: true, iconKey: 'HEART', key: 'soh_discharge' },
+            { label: 'Kapasitas Pengisian', unit: 'Ah', index: 12, showInExtra: true, iconKey: 'BATTERY_HALF_SOLID', key: 'ah_charge' },
+            { label: 'Kapasitas Pengurasan', unit: 'Ah', index: 13, showInExtra: true, iconKey: 'BATTERY_HALF_SOLID', key: 'ah_discharge' },
             { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, iconKey: 'FLASH', key: 'relay_charge_status' },
             { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, iconKey: 'FLAME', key: 'relay_discharge_status' },
+            
             { label: 'SOH (Rata-rata)', unit: '%', index: 16, showInExtra: false, key: 'soh_avg' },
+
+             // Parameter Tambahan (Menggunakan iconKey)
+            { label: 'Energy Masuk', unit: 'Wh', index: 17, showInExtra: true, iconKey: 'ENERGY', key: 'energy_positive' },
+            { label: 'Energy Keluar', unit: 'Wh', index: 18, showInExtra: true, iconKey: 'ENERGY', key: 'energy_negative' },
+            { label: 'Cycle Count', unit: 'CC', index: 19, showInExtra: true, iconKey: 'HEART', key: 'cycle_count' },
+            
         ];
+
+        
         const PERIOD_CONFIG = { /* ... sama seperti sebelumnya ... */
             '1h': { durationMs: 3600 * 1000, points: 12, label: '1 Jam' }, 
             '6h': { durationMs: 6 * 3600 * 1000, points: 24, label: '6 Jam' }, 
@@ -555,6 +580,7 @@
                         // Gunakan nilai 0 jika data belum ada di Firebase
                         values[map.index] = data[map.key] || 0.0;
                     });
+                    deviceInfo.textContent =  data['deviceName'];
                     
                     // Pastikan relay status tetap 0 atau 1
                     values[DATA_INDICES.STATUS_CHARGE] = data['relay_charge_status'] === 1.0 ? 1.0 : 0.0;
