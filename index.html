@@ -379,29 +379,29 @@
         const totalDischargeWhElement = document.getElementById('total-discharge-wh');
 
         
-         // --- DEFINISI SVG ICONS OFFLINE ---
-        const SVG_ICONS = {
-            // Thermometer (Suhu)
-            THERMOMETER: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
-            // Heart (Kesehatan SOH)
-            HEART: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+// --- DEFINISI SVG ICONS OFFLINE ---
+const SVG_ICONS = {
+    // Thermometer (Suhu)
+    THERMOMETER: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
+    
+    // Heart (Kesehatan SOH)
+    HEART: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
 
-            CYCLE: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect>
-  <line x1="22" y1="11" x2="22" y2="13"></line>
-  <path d="M16 4l3 3-3 3"></path>
-  <path d="M19 7H5a3 3 0 0 0-3 3"></path>
-</svg>,
-            // Flash/Zap (Relay Pengisian) - Simbol petir untuk arus/listrik
-            FLASH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-            // Flame (Relay Pengurasan) - Simbol api untuk panas/discharge
-            FLAME: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 15.5A2.5 2.5 0 0 0 17.5 13c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM8.5 8.5A2.5 2.5 0 0 0 11 6c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 9.5A2.5 2.5 0 0 0 17.5 7c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5z"/></svg>',
+    // Cycle Count (Baterai dengan Panah Siklus) - Diperbaiki ukurannya jadi 20 agar seragam
+    CYCLE: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect><line x1="22" y1="11" x2="22" y2="13"></line><path d="M16 4l3 3-3 3"></path><path d="M19 7H5a3 3 0 0 0-3 3"></path></svg>',
 
-            // Opsi Alternatif: Battery Half dengan isi blok solid (lebih mudah terlihat)
-            BATTERY_HALF_SOLID: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect><line x1="22" y1="11" x2="22" y2="13"></line><rect x="5" y="10" width="5" height="4" fill="currentColor" stroke="none"></rect></svg>',
-           // Alternatif: Bolt dengan lingkaran (sering digunakan untuk total energi/konsumsi)
-            ENERGY: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M13 6l-5 8h4v4l5-8h-4V6z"/></svg>'
-        };
+    // Flash/Zap (Relay Pengisian)
+    FLASH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    
+    // Flame (Relay Pengurasan)
+    FLAME: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 15.5A2.5 2.5 0 0 0 17.5 13c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM8.5 8.5A2.5 2.5 0 0 0 11 6c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 9.5A2.5 2.5 0 0 0 17.5 7c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5z"/></svg>',
+
+    // Baterai Solid
+    BATTERY_HALF_SOLID: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect><line x1="22" y1="11" x2="22" y2="13"></line><rect x="5" y="10" width="5" height="4" fill="currentColor" stroke="none"></rect></svg>',
+    
+    // Energy (Bolt Circle)
+    ENERGY: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M13 6l-5 8h4v4l5-8h-4V6z"/></svg>'
+};
 
         // Pemetaan Index Data 
         const DATA_INDICES = {
