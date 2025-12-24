@@ -795,13 +795,12 @@ if (isChargeOff && isDischargeOff) {
                  safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
                  safetyClass = 'bg-red-100 text-red-700 border-red-400';
                  statusText = 'Bahaya!';
-            } else if (deltaV > 10) {
+            } else if (deltaV > 50) {
                  safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
                  safetyClass = 'bg-yellow-200 text-yellow-700 border-yellow-400';
                  statusText = 'Peringatan!';
                  balancingStatusElement.textContent = "Balancing Active";
-                 balancingStatusElement.style.color = "#e67e22"; // Oranye/Peringatan
-                 balancingStatusElement.classList.add('active');
+                 balancingStatusElement.style.color = "F5D400"; // Oranye/Peringatan
     
             } else if (soc >= 100 && current > 0.1) {
                  safetyMsg = "PERINGATAN: Baterai Penuh. Hentikan pengisian.";
