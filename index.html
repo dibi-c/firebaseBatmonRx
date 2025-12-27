@@ -803,55 +803,66 @@ else if (v > 3.150 && v < 3.450) { bgClass = 'bg-green-100'; textColor = 'text-g
             });
             extraParametersContainer.innerHTML = extraHtml;
 
-           // --- 6. Update Status Keselamatan ---
-            let safetyMsg = "Semua parameter dalam batas aman.";
-            let safetyClass = 'bg-green-100 text-green-600 border-green-400'; 
-            let statusText = 'Normal';
+         // --- 6. Update Status Keselamatan ---
+let safetyMsg = "Semua parameter dalam batas aman.";
+let statusText = 'Normal';
+let isAnimate = false; // Flag untuk mengontrol animasi
 
-            // Ambil status relay (Ganti DATA_INDICES sesuai dengan urutan data Anda)
+// Ambil status relay
 const isChargeOff = values[DATA_INDICES.STATUS_DISCHARGE] === 0; 
 const isDischargeOff = values[DATA_INDICES.STATUS_CHARGE] === 0;
+const isDark = document.body.classList.contains('dark');
 
-// LOGIKA PRIORITAS TERTINGGI: Short Circuit
+// 1. Tentukan Status dan Pesan
 if (isChargeOff && isDischargeOff) {
     safetyMsg = "BAHAYA KRITIS: Short Circuit Terdeteksi! Semua Relay Terputus.";
-    safetyClass = 'bg-red-600 text-white border-red-800 animate-pulse'; // Efek berkedip
     statusText = 'SHORT CIRCUIT!';
+    isAnimate = true;
 } else if (maxTemp > 45) {
-                 safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
-                 safetyClass = 'bg-red-100 text-red-700 border-red-400 animate-pulse';
-                 statusText = 'Bahaya!';
-            } else if (deltaV > 50) {
-                 safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
-                 safetyClass = 'bg-yellow-200 text-yellow-700 border-yellow-400 animate-pulse';
-                 statusText = 'Peringatan!';
-                 balancingStatusElement.textContent = "Status Balancing: Balancing Active";
-                 balancingStatusElement.style.color = "#F5D400"; // Oranye/Peringatan
-    
-            } else if (soc >= 100 && current > 0.1) {
-                 safetyMsg = "PERINGATAN: Baterai Penuh. Hentikan pengisian.";
-                 statusText = 'Penuh';
-            } else if (soc <= 10) {
-                 safetyMsg = "PERINGATAN: Kapasitas baterai menipis (<10%).";
-                 statusText = 'Low Battery';
-            }
-            
-            // Logic Dark Mode untuk Status Keselamatan
-            if (document.body.classList.contains('dark')) {
-                if (statusText === 'Bahaya!') {
-                    safetyClass = 'bg-red-900 border-red-400 text-red-300';
-                } else if (statusText === 'Peringatan!') {
-                    safetyClass = 'bg-yellow-900 border-yellow-400 text-yellow-300';
-                } else {
-                    safetyClass = 'bg-green-900 border-green-400 text-green-300';
-                }
-            }
-            
-            safetyStatusSection.className = `status-box mb-6 border ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
-            safetyStatusSection.classList.remove('hidden'); 
-            safetyStatusText.textContent = statusText;
-            safetyMessage.textContent = safetyMsg;
-            
+    safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
+    statusText = 'Bahaya!';
+    isAnimate = true;
+} else if (deltaV > 50) {
+    safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
+    statusText = 'Peringatan!';
+    isAnimate = true;
+    balancingStatusElement.textContent = "Status Balancing: Balancing Active";
+    balancingStatusElement.style.color = "#F5D400";
+} else if (soc >= 100 && current > 0.1) {
+    safetyMsg = "PERINGATAN: Baterai Penuh. Hentikan pengisian.";
+    statusText = 'Penuh';
+} else if (soc <= 10) {
+    safetyMsg = "PERINGATAN: Kapasitas baterai menipis (<10%).";
+    statusText = 'Low Battery';
+}
+
+// 2. Tentukan Warna (Base Classes) berdasarkan Status dan Tema
+let safetyClass = '';
+
+if (statusText === 'SHORT CIRCUIT!') {
+    // Khusus Short Circuit dibuat mencolok baik dark maupun light
+    safetyClass = 'bg-red-600 text-white border-red-800';
+} else if (statusText === 'Bahaya!') {
+    safetyClass = isDark ? 'bg-red-900 border-red-400 text-red-300' : 'bg-red-100 text-red-700 border-red-400';
+} else if (statusText === 'Peringatan!') {
+    safetyClass = isDark ? 'bg-yellow-900 border-yellow-400 text-yellow-300' : 'bg-yellow-200 text-yellow-700 border-yellow-400';
+} else if (statusText === 'Normal') {
+    safetyClass = isDark ? 'bg-green-900 border-green-400 text-green-300' : 'bg-green-100 text-green-600 border-green-400';
+} else {
+    // Untuk Penuh atau Low Battery (Default Kuning/Oranye)
+    safetyClass = isDark ? 'bg-blue-900 border-blue-400 text-blue-300' : 'bg-blue-100 text-blue-700 border-blue-400';
+}
+
+// 3. Tambahkan Animasi jika diperlukan
+if (isAnimate) {
+    safetyClass += ' animate-pulse';
+}
+
+// 4. Update DOM
+safetyStatusSection.className = `status-box mb-6 border ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
+safetyStatusSection.classList.remove('hidden'); 
+safetyStatusText.textContent = statusText;
+safetyMessage.textContent = safetyMsg;
             
             
             
