@@ -829,7 +829,7 @@ if (isChargeOff && isDischargeOff) {
     safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
     statusText = 'Bahaya!';
     isAnimate = true;
-} else if (deltaV > 10) {
+} else if (deltaV > 50) {
     safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
     statusText = 'Peringatan!';
     isAnimate = true;
