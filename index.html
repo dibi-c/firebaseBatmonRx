@@ -28,7 +28,11 @@
         }
 
         .cell-grid {
-            grid-template-columns: repeat(4, 1fr); 
+            // grid-template-columns: repeat(4, 1fr); 
+            display: grid;
+            /* Default: 2 kolom untuk layar kecil (HP) */
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1rem;
         }
 
         /* Styling spesifik untuk kartu kelistrikan (Light Mode) */
@@ -149,6 +153,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     </head>
 <body class="min-h-screen p-4 md:p-8 bg-gray-50 text-gray-800 dark:text-gray-100 transition-colors duration-300">
+    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
     <script>
         tailwind.config = {
             darkMode: 'class', 
@@ -340,6 +345,8 @@
             </div>
         </div>
         </div>
+
+    
 
     <script src="chart.js"></script>
     <script type="text/javascript">
@@ -854,8 +861,15 @@ if (statusText === 'SHORT CIRCUIT!') {
 }
 
 // 3. Tambahkan Animasi jika diperlukan
+// 3. Tambahkan Animasi dan Suara jika diperlukan
 if (isAnimate) {
     safetyClass += ' animate-pulse';
+    
+    // Tambahkan baris ini untuk membunyikan alarm
+    const alarm = document.getElementById('alarmSound');
+    if (alarm) {
+        alarm.play().catch(e => console.log("Menunggu interaksi user untuk suara"));
+    }
 }
 
 // 4. Update DOM
@@ -947,7 +961,7 @@ safetyMessage.textContent = safetyMsg;
             return { 
                 labels: labels, 
                 chargeData: chargeBins, 
-                dischargeData: dischargeBins.map(d => -d), 
+                dischargeData: dischargeBins,//.map(d => -d), 
                 totalChargeWh: totalChargeWh,
                 totalDischargeWh: totalDischargeWh
             };
@@ -1092,7 +1106,7 @@ const svgSun = `
                     scales: {
                         x: { grid: { display: false }, ticks: { color: textColor } },
                         y: {
-                            title: { display: true, text: 'Energi (Wh) - Charge (+), Discharge (-)', color: textColor },
+                            title: { display: true, text: 'Energi (Wh) - Charge & Discharge', color: textColor },
                             grid: { borderDash: [5, 5], color: gridColor },
                             ticks: { color: textColor, callback: function(value) { if (value === 0) return '0.00'; return value.toFixed(2); } }
                         }
