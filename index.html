@@ -640,14 +640,13 @@ minMaxPowerElement.textContent = `Min: ${Number(data['min_power']).toFixed(3)} W
                     values[DATA_INDICES.STATUS_DISCHARGE] = data['relay_discharge_status'] === 1.0 ? 1.0 : 0.0;
                     
                     updateDashboard(values);
-                   // Ganti baris statusMessage lama dengan logika ini:
-if (data.type === "BLUETOOTH_DISCONNECTED") {
-    statusMessage.textContent = `Status: ${data.message} | ${data.time_local}`;
-    statusMessage.classList.replace('text-green-500', 'text-red-500');
-} else {
-    statusMessage.textContent = `Terkoneksi | Data: ${new Date(data.timestamp).toLocaleTimeString('id-ID')}`;
-    statusMessage.classList.replace('text-red-500', 'text-green-500');
-}
+
+// --- TAMBAHAN PENTING: Kembalikan status ke Hijau jika data masuk ---
+            statusMessage.textContent = `Terkoneksi | Data terakhir diterima: ${new Date(data.timestamp).toLocaleTimeString('id-ID')}`;
+            statusMessage.className = "text-sm text-green-500 font-medium"; // Menghapus warna merah & animasi pulse
+            updateConnectionUI("Connected"); // Kembalikan Dot jadi hijau
+            // ------------------------------------------------------------------
+                    
                     errorBox.classList.add('hidden');
                 } else {
                     statusMessage.textContent = "Terkoneksi | Menunggu data BMS pertama...";
@@ -660,6 +659,31 @@ if (data.type === "BLUETOOTH_DISCONNECTED") {
                 errorBox.classList.remove('hidden');
                 console.error("Firebase Read Error:", error);
             });
+
+// 2. MONITOR NOTIFIKASI TERPUTUS (Ambil 1 data terakhir dari folder 'notifications')
+    const notificationsRef = firebaseDB.ref('notifications').orderByChild('timestamp').limitToLast(1);
+    
+    notificationsRef.on('child_added', (snapshot) => {
+        const notif = snapshot.val();
+        
+        // Jika notifikasi adalah tipe terputus
+        if (notif && notif.type === "BLUETOOTH_DISCONNECTED") {
+            // Tampilkan 'message' dari Firebase ke statusMessage
+            statusMessage.textContent = `Status: ${notif.message} (${notif.time_local})`;
+            
+            // Ubah warna jadi merah agar terlihat menonjol
+            statusMessage.className = "text-sm text-red-500 font-bold animate-pulse";
+            
+            // Update Dot di halaman jam jadi Merah
+            updateConnectionUI("Disconnected");
+            
+            if (deviceInfo) {
+                deviceInfo.textContent = `Offline: ${notif.device}`;
+            }
+        }
+    });
+
+            
         }
         
         // --- FUNGSI UPDATE DASHBOARD (SAMA SEPERTI SEBELUMNYA, DENGAN SEDIKIT PENYESUAIAN) ---
