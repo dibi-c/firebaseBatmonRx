@@ -640,7 +640,14 @@ minMaxPowerElement.textContent = `Min: ${Number(data['min_power']).toFixed(3)} W
                     values[DATA_INDICES.STATUS_DISCHARGE] = data['relay_discharge_status'] === 1.0 ? 1.0 : 0.0;
                     
                     updateDashboard(values);
-                    statusMessage.textContent = `Terkoneksi | Data terakhir diterima: ${new Date(data.timestamp).toLocaleTimeString('id-ID')}`;
+                   // Ganti baris statusMessage lama dengan logika ini:
+if (data.type === "BLUETOOTH_DISCONNECTED") {
+    statusMessage.textContent = `Status: ${data.message} | ${data.time_local}`;
+    statusMessage.classList.replace('text-green-500', 'text-red-500');
+} else {
+    statusMessage.textContent = `Terkoneksi | Data: ${new Date(data.timestamp).toLocaleTimeString('id-ID')}`;
+    statusMessage.classList.replace('text-red-500', 'text-green-500');
+}
                     errorBox.classList.add('hidden');
                 } else {
                     statusMessage.textContent = "Terkoneksi | Menunggu data BMS pertama...";
