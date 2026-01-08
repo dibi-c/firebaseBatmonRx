@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Dashboard BMS (Firebase)</title>
+    <script src="tailwind.js"></script>
+    <style>
+        /* Menggunakan font Inter */
+        html { font-family: 'Inter', sans-serif; }
+        
+        /* Kartu dasar dengan shadow yang bagus */
+        .dashboard-card {
+            background-color: #ffffff; 
+            border-radius: 1rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .value-text {
+            font-size: 1.875rem; /* 3xl */
+            font-weight: 700;
+        }
+
+        .status-box {
+            border-radius: 0.75rem;
+            padding: 1rem;
+        }
+
+        .cell-grid {
+            // grid-template-columns: repeat(4, 1fr); 
+            display: grid;
+            /* Default: 2 kolom untuk layar kecil (HP) */
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1rem;
+        }
+
+        /* Styling spesifik untuk kartu kelistrikan (Light Mode) */
+        .card-voltage { background-color: #bfdbfe; color: #1e40af; } 
+        .card-current { background-color: #fecaca; color: #b91c1c; } 
+        .card-power { background-color: #fffbeb; color: #b45309; } 
+        .card-cap-rem { background-color: #e9d5ff; color: #6b21a8; } 
+        .card-cap-used { background-color: #a7f3d0; color: #065f46; } 
+        .card-delta { background-color: #fce7f3; color: #be185d; } 
+        
+        /* Style untuk tombol periode aktif */
+        .period-active {
+            @apply bg-primary text-white shadow-md;
+        }
+        .period-button {
+            @apply p-2 rounded-lg text-sm font-medium transition duration-150 hover:bg-gray-200;
+        }
+
+        /* ======================================= */
+        /* START: BACKGROUND GAMBAR PNG & OVERLAY */
+        /* ======================================= */
+        body {
+            background-image: url('bms_background.png'); 
+            background-size: cover; 
+            background-repeat: no-repeat;
+            background-attachment: fixed; 
+            background-position: center center;
+            background-color: transparent !important; 
+        }
+
+        #background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); 
+            z-index: -10; 
+            transition: background-color 0.3s;
+        }
+
+        .dark #background-overlay {
+            background-color: rgba(0, 0, 0, 0.7); 
+        }
+
+        /* Kartu dasar - Efek Kaca Siang Hari */
+.dashboard-card {
+    background-color: rgba(255, 255, 255, 0.2) !important; /* Putih Transparan 20% */
+    backdrop-filter: blur(12px); /* Efek Buram Kaca */
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 1rem; 
+    border: 1px solid rgba(255, 255, 255, 0.3); /* Garis tepi tipis */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    transition: all 0.3s ease;
+    z-index: 1; 
+}
+
+/* Efek Kaca Dark Mode - Lebih Pekat */
+.dark .dashboard-card {
+    /* Menggunakan hitam transparan 60% agar background PNG tetap terlihat tapi teks terbaca */
+    background-color: rgba(0, 0, 0, 0.6) !important; 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    backdrop-filter: blur(16px); /* Blur lebih kuat di malam hari */
+}
+
+/* Menghilangkan background putih paksaan dari class Tailwind dark:bg-white */
+.dark .bg-white { 
+    background-color: transparent !important; 
+}
+        /* ======================================= */
+        /* END: BACKGROUND GAMBAR PNG & OVERLAY */
+        /* ======================================= */
+
+
+        /* --- DARK MODE STYLES OVERRIDES --- */
+        
+        body.dark { background-color: transparent !important; }
+        .dark .dashboard-card { background-color: transparent !important; box-shadow: none; border: 1px solid #374151; }
+        .dark .bg-white { background-color: #1f2937 !important; } 
+        .dark .bg-gray-50, .dark .bg-gray-100, .dark .bg-gray-200 { 
+            background-color: #374151 !important; 
+            color: #d1d5db !important; 
+        }
+        
+        .dark .bg-green-50 { background-color: #064e3b !important; color: #a7f3d0 !important; }
+        
+        .dark .card-voltage { background-color: #1e3a8a !important; color: #93c5fd !important; } 
+        .dark .card-current { background-color: #7f1d1d !important; color: #fca5a5 !important; } 
+        .dark .card-power { background-color: #78350f !important; color: #fde68a !important; } 
+        .dark .card-cap-rem { background-color: #581c87 !important; color: #d8b4fe !important; } 
+        .dark .card-cap-used { background-color: #047857 !important; color: #a7f3d0 !important; } 
+        .dark .card-delta { background-color: #9d174d !important; color: #f9a8d4 !important; }
+
+        .dark .period-button:not(.period-active) { 
+            background-color: #1f2937 !important; 
+            color: #d1d5db !important;
+        }
+        .dark .period-button:not(.period-active):hover { @apply bg-gray-600 !important; }
+        
+        .dark .border-b, .dark .border-gray-300 { border-color: #4b5563 !important; }
+        .dark .text-gray-400 { color: #9ca3af !important; }
+        .dark .text-gray-500 { color: #d1d5db !important; }
+        .dark .text-gray-800 { color: #f3f4f6 !important; }
+        .dark .text-gray-900 { color: #f9fafb !important; }
+        
+        .dark .bg-red-100 { background-color: #450a0a !important; color: #fecaca !important; } 
+        .dark .bg-yellow-200 { background-color: #422006 !important; color: #fde68a !important; } 
+        .dark .bg-green-100 { background-color: #064e3b !important; color: #a7f3d0 !important; }
+        .dark .border-red-400 { border-color: #b91c1c !important; }
+        .dark .border-yellow-400 { border-color: #b45309 !important; }
+        .dark .border-green-400 { border-color: #065f46 !important; }
+        
+    </style>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    </head>
+<body class="min-h-screen p-4 md:p-8 bg-gray-50 text-gray-800 dark:text-gray-100 transition-colors duration-300">
+    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', 
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#3b82f6', 
+                        'accent': '#10b981', 
+                    }
+                }
+            }
+        }
+    </script>
+    <div id="background-overlay"></div>
+    <div class="max-w-6xl mx-auto">
+
+
+        
+       <div id="login-container" class="min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-2xl transition-colors duration-300">
+        <h2 class="text-3xl font-extrabold text-center text-gray-900 dark:text-gray-100 mb-6">
+            Akses Dashboard BMS
+        </h2>
+
+        <p id="login-message" class="text-sm text-center text-red-600 dark:text-red-400 mb-4 font-medium"></p>
+        
+        <form id="login-form" onsubmit="event.preventDefault(); login();">
+    <div class="mb-4">
+        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+        <input type="email" id="email" required placeholder="Masukkan Email"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200">
+    </div>
+    <div class="mb-6">
+        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+        <input type="password" id="password" required placeholder="Masukkan Password"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200">
+    </div>
+    
+    <button id="login-button" type="submit" class="w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md">
+        Login
+    </button>
+</form>
+
+        <div class="relative my-8">
+            <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-gray-300 dark:border-gray-600"></span></div>
+            <div class="relative flex justify-center text-xs uppercase"><span class="bg-white dark:bg-gray-800 px-2 text-gray-500">Firebase Config</span></div>
+        </div>
+
+        <div id="firebase-config-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">API Key</label>
+                <input type="text" id="local-fb-apiKey" placeholder="AIzaSy..." 
+                    class="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">Project ID</label>
+                <input type="text" id="local-fb-projectId" placeholder="my-project-id" 
+                    class="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase text-blue-500 cursor-pointer hover:underline" onclick="toggleAdvancedConfig()">+ Tampilkan Database URL</label>
+                <input type="text" id="local-fb-dbUrl" placeholder="https://..." 
+                    class="hidden w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500">
+            </div>
+            <button onclick="saveLocalFirebaseConfig()" class="w-full py-2 px-4 rounded-md text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
+                Simpan Config di Browser
+            </button>
+        </div>
+    </div>
+</div>
+
+
+        <div id="dashboard-container" class="hidden">
+            <header class="flex justify-between items-center mb-6 p-3 rounded-lg bg-white dark:bg-gray-800 shadow-md border-b">
+                <div id="status-display" class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <span id="status-message">Menunggu Data Realtime Firebase...</span>
+            <div class="flex items-center gap-2">
+              <span id="user-info" class="text-xs text-gray-400 dark:text-gray-600 italic"></span>
+              <span class="text-xs text-gray-400 dark:text-gray-600 italic">Device: </span>
+              <span id="device-info" class="text-xs text-gray-400 dark:text-gray-600 italic"></span>
+         </div>
+    </div>
+                <div class="flex space-x-2">
+                    <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 p-2 rounded-full flex items-center justify-center bg-gray-200 text-yellow-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-yellow-300 dark:hover:bg-gray-600 transition-all duration-300 shadow-md">
+                        <span id="theme-icon" class="text-xl transition-transform duration-300" role="img" aria-label="Dark/Light Mode Toggle"></span>
+                    </button>
+                    
+                    <button id="logout-button" onclick="logout()"  class="w-20 h-10 p-2 rounded-lg flex items-center justify-center bg-blue-200 text-white-600 shadow-md">
+                        Logout
+                    </button>
+                </div>
+            </header>
+            <div class="flex justify-between items-center mb-4">
+                 <p id="firestore-status" class="text-xs text-gray-500 dark:text-gray-400">Status DB: Firebase RTDB Aktif.</p>
+            </div>
+            
+
+            <section id="safety-status-section" class="status-box mb-6 hidden bg-green-100 text-green-600 border border-green-400">
+                <h3 class="font-bold text-xl mb-1">Status Keselamatan: <span id="safety-status-text">Normal</span></h3>
+                <p class="text-sm" id="safety-message">Semua parameter dalam batas aman.</p>
+            </section>
+            
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="dashboard-card p-5 border border-white/30 dark:border-white/10 bg-transparent backdrop-blur-md rounded-xl shadow-xl border-b-4 border-b-green-500">
+        <p class="text-sm font-medium text-gray-200 dark:text-gray-500 mb-1">Kapasitas (SOC)</p>
+        <p id="soc-value" class="text-3xl font-bold text-green-500 dark:text-green-500">0.0%</p>
+        
+        <div class="h-2 bg-black/5 dark:bg-white/5 rounded-full mt-2">
+            <div id="soc-progress" class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <p id="time-remaining" class="text-xs font-semibold text-gray-200 dark:text-gray-500 mt-2">Waktu Sisa: Menghitung...</p>
+    </div>
+
+    <div class="dashboard-card p-5 border border-white/30 dark:border-white/10 bg-transparent backdrop-blur-md rounded-xl shadow-xl border-b-4 border-b-yellow-500">
+        <p class="text-sm font-medium text-gray-200 dark:text-gray-500 mb-1">Kesehatan (SOH)</p>
+        <p id="soh-value" class="text-3xl font-bold text-yellow-500 dark:text-yellow-500">0.0%</p>
+        <div class="h-2 bg-black/5 dark:bg-white/5 rounded-full mt-2">
+            <div id="soh-progress" class="h-full bg-yellow-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div class="dashboard-card p-5 border border-white/30 dark:border-white/10 bg-transparent backdrop-blur-md rounded-xl shadow-xl border-b-4 border-b-red-500">
+        <p class="text-sm font-medium text-gray-200 dark:text-gray-500 mb-1">Suhu (Maks)</p>
+        <p id="temp-value" class="text-3xl font-bold text-red-500 dark:text-red-500">0.0°C</p>
+    </div>
+</section>
+
+            <section class="mb-8 p-6 dashboard-card">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Parameter Kelistrikan Inti</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="p-4 rounded-lg card-voltage">
+                        <p class="text-sm font-semibold mb-1">Tegangan Total</p>
+                        <p id="total-voltage" class="value-text">0.00 V</p>
+                        <p id="min-max-voltage" class="text-xs font-medium mt-1">Min: 0.00 V | Max: 0.00 V</p>
+                    </div>
+                    <div class="p-4 rounded-lg card-current">
+                        <p class="text-sm font-semibold mb-1">Arus</p>
+                        <p id="current-value" class="value-text">0.00 A</p>
+                        <p id="min-max-current" class="text-xs font-medium mt-1">Min: 0.00 A | Max: 0.00 A</p>
+                    </div>
+                    <div class="p-4 rounded-lg card-power">
+                        <p class="text-sm font-semibold mb-1">Daya</p>
+                        <p id="power-value" class="value-text">0.00 W</p>
+                        <p id="min-max-power" class="text-xs font-medium mt-1">Min: 0.00 W | Max: 0.00 W</p>
+                    </div>
+                    <div class="p-4 rounded-lg card-cap-rem">
+                        <p class="text-sm font-semibold mb-1">Kapasitas Pabrik</p>
+                        <p id="remaining-capacity" class="value-text">0 Ah</p>
+                    </div>
+                    <div class="p-4 rounded-lg card-cap-used">
+                        <p class="text-sm font-semibold mb-1">Kapasitas Sisa</p>
+                        <p id="capacity-used-value" class="value-text">0 Ah</p>
+                    </div>
+                    <div class="p-4 rounded-lg card-delta">
+                        <p class="text-sm font-semibold mb-1">DeltaV Sel Aktif</p>
+                        <p id="delta-v-value" class="value-text">0 mV</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-8 p-6 dashboard-card">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Profil Energi (Wh) dari Log Firebase</h2>
+                
+                <div class="flex flex-wrap justify-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4">
+                    <button id="period-1h" onclick="selectPeriod('1h')" class="period-button period-active">1 Jam</button>
+                    <button id="period-6h" onclick="selectPeriod('6h')" class="period-button">6 Jam</button>
+                    <button id="period-12h" onclick="selectPeriod('12h')" class="period-button">12 Jam</button>
+                    <button id="period-24h" onclick="selectPeriod('24h')" class="period-button">24 Jam</button>
+                    <button id="period-7d" onclick="selectPeriod('7d')" class="period-button">7 Hari</button> 
+                    <button id="period-30d" onclick="selectPeriod('30d')" class="period-button">30 Hari</button>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 class="text-center font-semibold text-gray-800 dark:text-gray-200 mb-2">Energi Masuk (Charge +) vs Keluar (Discharge -)</h4>
+                    <div class="w-full h-96">
+                        <canvas id="whCombinedCanvas"></canvas>
+                    </div>
+                    
+                    <p id="chart-status" class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">Memuat data Wh dari Firebase...</p>
+                    <div class="flex flex-wrap justify-center space-x-8 text-sm mt-4 font-semibold">
+                        <p class="text-green-600"><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span> Total Charge: <span id="total-charge-wh">0.000 Wh</span></p>
+                        <p class="text-red-600"><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span> Total Discharge: <span id="total-discharge-wh">0.000 Wh</span></p>
+                    </div>
+                </div>
+            </section>
+
+
+            <section class="mb-8 p-6 dashboard-card">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Detail Tegangan Sel (S1-S4)</h2>
+                <div id="cell-voltage-detail" class="grid cell-grid gap-4">
+                    <div id="cell-1" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
+                        <p class="text-sm font-medium">Sel 1</p>
+                        <p class="text-xl font-bold text-gray-800">0.00 V</p>
+                    </div>
+                    <div id="cell-2" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
+                        <p class="text-sm font-medium">Sel 2</p>
+                        <p class="text-xl font-bold text-gray-800">0.00 V</p>
+                    </div>
+                    <div id="cell-3" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
+                        <p class="text-sm font-medium">Sel 3</p>
+                        <p class="text-xl font-bold text-gray-800">0.00 V</p>
+                    </div>
+                    <div id="cell-4" class="p-3 text-center rounded-lg bg-gray-200 border border-gray-300">
+                        <p class="text-sm font-medium">Sel 4</p>
+                        <p class="text-xl font-bold text-gray-500">0.00 V</p>
+                    </div>
+                </div>
+                <p id="summary-min-max" class="mt-4 text-sm text-gray-500 dark:text-gray-400 text-center">Min: 0.000 V | Max: 0.000 V | DeltaV: 0 mV</p>
+                <p id="balancing-status" class="font-bold text-lg text-green-600 text-center mt-2">Status Balancing: Normal</p>
+            </section>
+
+            <section class="p-6 dashboard-card">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Parameter Detail Tambahan</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="extra-parameters">
+                </div>
+            </section>
+
+            <div id="error-box" class="mt-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+                <p class="font-bold text-lg">⚠️ Kesalahan Firebase/Data:</p>
+                <p id="error-details" class="text-sm mt-1"></p>
+            </div>
+        </div>
+        </div>
+
+    
+
+    <script src="chart.js"></script>
+    <script type="text/javascript">
+        
+        // --- Variabel Global & Konstanta Lainnya ---
+        let whChart = null; 
+        let selectedPeriod = '1h'; 
+        
+        // Variabel untuk melacak Min/Max (Dibutuhkan untuk dashboard)
+        let minTotalVoltage = Infinity;
+        let maxTotalVoltage = -Infinity;
+        let minCurrent = Infinity;
+        let maxCurrent = -Infinity;
+        let minPower = Infinity;
+        let maxPower = -Infinity;
+
+        // Kunci untuk menyimpan tema
+        const THEME_KEY = 'bms_theme'; 
+        
+        // Konstanta interval log yang dipakai oleh BMS (perlu disamakan dengan hardware)
+        const BMS_LOG_INTERVAL_MS = 60000; // 1 menit (sesuai dengan log di versi sebelumnya)
+
+
+        // --- UI Elements ---
+        const loginContainer = document.getElementById('login-container');
+        const dashboardContainer = document.getElementById('dashboard-container');
+        const loginMessage = document.getElementById('login-message');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const statusMessage = document.getElementById('status-message');
+        const userInfo = document.getElementById('user-info');
+        const deviceInfo = document.getElementById('device-info');
+        const errorBox = document.getElementById('error-box');
+        const errorDetails = document.getElementById('error-details');
+        const themeIcon = document.getElementById('theme-icon'); 
+        
+        // ... (Elemen dashboard lainnya - sama dengan file sebelumnya) ...
+        const cellElements = [document.getElementById('cell-1'), document.getElementById('cell-2'), document.getElementById('cell-3'), document.getElementById('cell-4')];
+        const summaryMinMaxElement = document.getElementById('summary-min-max');
+        const balancingStatusElement = document.getElementById('balancing-status');
+        const totalVoltageElement = document.getElementById('total-voltage');
+        const minMaxVoltageElement = document.getElementById('min-max-voltage'); 
+        const currentElement = document.getElementById('current-value');
+        const minMaxCurrentElement = document.getElementById('min-max-current'); 
+        const powerElement = document.getElementById('power-value');
+        const minMaxPowerElement = document.getElementById('min-max-power'); 
+        const capacityUsedElement = document.getElementById('capacity-used-value');
+        const remainingCapacityElement = document.getElementById('remaining-capacity');
+        const deltaVElement = document.getElementById('delta-v-value');
+        const socValueElement = document.getElementById('soc-value');
+        const socProgressElement = document.getElementById('soc-progress');
+        const sohValueElement = document.getElementById('soh-value');
+        const sohProgressElement = document.getElementById('soh-progress');
+        const tempValueElement = document.getElementById('temp-value');
+        const timeRemainingElement = document.getElementById('time-remaining');
+        const safetyStatusSection = document.getElementById('safety-status-section');
+        const safetyStatusText = document.getElementById('safety-status-text');
+        const safetyMessage = document.getElementById('safety-message');
+        const extraParametersContainer = document.getElementById('extra-parameters');
+        const chartStatusElement = document.getElementById('chart-status');
+        const totalChargeWhElement = document.getElementById('total-charge-wh');
+        const totalDischargeWhElement = document.getElementById('total-discharge-wh');
+
+        
+// --- DEFINISI SVG ICONS OFFLINE ---
+const SVG_ICONS = {
+    // Thermometer (Suhu)
+    THERMOMETER: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
+    
+    // Heart (Kesehatan SOH)
+    HEART: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+
+    // Cycle Count (Baterai dengan Panah Siklus) - Diperbaiki ukurannya jadi 20 agar seragam
+    CYCLE: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect><line x1="22" y1="11" x2="22" y2="13"></line><path d="M16 4l3 3-3 3"></path><path d="M19 7H5a3 3 0 0 0-3 3"></path></svg>',
+
+    // Flash/Zap (Relay Pengisian)
+    FLASH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    
+    // Flame (Relay Pengurasan)
+    FLAME: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 15.5A2.5 2.5 0 0 0 17.5 13c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM8.5 8.5A2.5 2.5 0 0 0 11 6c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 9.5A2.5 2.5 0 0 0 17.5 7c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5z"/></svg>',
+
+    // Baterai Solid
+    BATTERY_HALF_SOLID: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect><line x1="22" y1="11" x2="22" y2="13"></line><rect x="5" y="10" width="5" height="4" fill="currentColor" stroke="none"></rect></svg>',
+    
+    // Energy (Bolt Circle)
+    ENERGY: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M13 6l-5 8h4v4l5-8h-4V6z"/></svg>'
+};
+
+        // Pemetaan Index Data 
+        const DATA_INDICES = {
+            TOTAL_VOLTAGE: 0, CELL_1: 1, CELL_2: 2, CELL_3: 3, CELL_4: 4, 
+            CURRENT: 5, POWER: 6, CAP_MAX: 7, SOC: 8,
+            TEMP_1: 9, TEMP_2: 10, 
+            CAP_USED: 11,
+            SOH_1: 12, SOH_2: 13, 
+            STATUS_CHARGE: 14, STATUS_DISCHARGE: 15, SOH: 16, WHPOS: 17, WHNEG: 18, CC: 19,
+        };
+
+        // Definisi semua 16 data, menggunakan 'iconKey' untuk merujuk ke SVG_ICONS
+        const ALL_DATA_MAP = [
+            // Dikecualikan dari 'Tambahan' (sudah di Ringkasan atau Inti)
+            { label: 'Tegangan Total', unit: 'V', index: 0, showInExtra: false, key: 'total_v' },
+            { label: 'Tegangan Sel 1', unit: 'V', index: 1, showInExtra: false, key: 'cell_1' },
+            { label: 'Tegangan Sel 2', unit: 'V', index: 2, showInExtra: false, key: 'cell_2' },
+            { label: 'Tegangan Sel 3', unit: 'V', index: 3, showInExtra: false, key: 'cell_3' },
+            { label: 'Tegangan Sel 4', unit: 'V', index: 4, showInExtra: false, key: 'cell_4' },
+            { label: 'Arus', unit: 'A', index: 5, showInExtra: false, key: 'current' },
+            { label: 'Daya', unit: 'W', index: 6, showInExtra: false, key: 'power' },
+            { label: 'Kapasitas Terpakai (Max/Full)', unit: 'Ah', index: 7, showInExtra: false, key: 'cap_max' },
+            { label: 'SOC (State of Charge)', unit: '%', index: 8, showInExtra: false, key: 'soc' },
+            { label: 'Suhu Baterai', unit: '°C', index: 9, showInExtra: true, iconKey: 'THERMOMETER', key: 'temp_batt' }, 
+            { label: 'Suhu Mosfet', unit: '°C', index: 10, showInExtra: true, iconKey: 'THERMOMETER', key: 'temp_mos' }, 
+            { label: 'Kapasitas Tersisa (Remaining)', unit: 'Ah', index: 11, showInExtra: false, key: 'cap_remain' },
+            { label: 'Kapasitas Pengisian', unit: 'Ah', index: 12, showInExtra: true, iconKey: 'BATTERY_HALF_SOLID', key: 'cap_chg' },
+            { label: 'Kapasitas Pengurasan', unit: 'Ah', index: 13, showInExtra: true, iconKey: 'BATTERY_HALF_SOLID', key: 'cap_dis' },
+            { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, iconKey: 'FLASH', key: 'relay_chg' },
+            { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, iconKey: 'FLAME', key: 'relay_dis' },
+            
+            { label: 'SOH (Rata-rata)', unit: '%', index: 16, showInExtra: false, key: 'soh' },
+
+             // Parameter Tambahan (Menggunakan iconKey)
+            { label: 'Energy Masuk', unit: 'Wh', index: 17, showInExtra: true, iconKey: 'ENERGY', key: 'energy_in' },
+            { label: 'Energy Keluar', unit: 'Wh', index: 18, showInExtra: true, iconKey: 'ENERGY', key: 'energy_out' },
+            { label: 'Cycle Count', unit: 'CC', index: 19, showInExtra: true, iconKey: 'CYCLE', key: 'cycle_count' },
+            
+        ];
+
+        
+        const PERIOD_CONFIG = { /* ... sama seperti sebelumnya ... */
+            '1h': { durationMs: 3600 * 1000, points: 12, label: '1 Jam' }, 
+            '6h': { durationMs: 6 * 3600 * 1000, points: 24, label: '6 Jam' }, 
+            '12h': { durationMs: 12 * 3600 * 1000, points: 24, label: '12 Jam' }, 
+            '24h': { durationMs: 24 * 3600 * 1000, points: 24, label: '24 Jam' }, 
+            '7d': { durationMs: 7 * 24 * 3600 * 1000, points: 7, label: '7 Hari' },
+            '30d': { durationMs: 30 * 24 * 3600 * 1000, points: 30, label: '30 Hari' } 
+        };
+        // --- END DEFINISI SVG ICONS OFFLINE & DATA MAP ---
+        
+        
+        // --- KONFIGURASI FIREBASE ---
+        // PENTING: Ganti nilai API Key, Auth Domain, dll., dengan konfigurasi Firebase Anda yang sebenarnya.
+       
+
+// Fungsi untuk menyimpan ke LocalStorage
+function saveLocalFirebaseConfig() {
+    const apiKey = document.getElementById('local-fb-apiKey').value.trim();
+    const projectId = document.getElementById('local-fb-projectId').value.trim();
+    const databaseURL = document.getElementById('local-fb-dbUrl').value.trim();
+
+    if (!apiKey || !projectId) {
+        alert("API Key dan Project ID wajib diisi!");
+        return;
+    }
+
+    const config = {
+        apiKey: apiKey,
+        projectId: projectId,
+        databaseURL: databaseURL
+    };
+
+    localStorage.setItem('firebase_config', JSON.stringify(config));
+    alert("Konfigurasi Firebase berhasil disimpan di browser ini!");
+}
+
+// Fungsi untuk memuat data otomatis saat halaman dibuka
+function loadSavedConfig() {
+    const saved = JSON.parse(localStorage.getItem('firebase_config') || '{}');
+    if (saved.apiKey) document.getElementById('local-fb-apiKey').value = saved.apiKey;
+    if (saved.projectId) document.getElementById('local-fb-projectId').value = saved.projectId;
+    if (saved.databaseURL) {
+        document.getElementById('local-fb-dbUrl').value = saved.databaseURL;
+        document.getElementById('local-fb-dbUrl').classList.remove('hidden');
+    }
+}
+
+function toggleAdvancedConfig() {
+    const dbInput = document.getElementById('local-fb-dbUrl');
+    dbInput.classList.toggle('hidden');
+}
+
+// Jalankan load saat halaman siap
+document.addEventListener('DOMContentLoaded', loadSavedConfig);
+
+// Jalankan saat halaman selesai dimuat
+window.addEventListener('DOMContentLoaded', () => {
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+
+    const savedEmail = localStorage.getItem('saved_email');
+    const savedPassword = localStorage.getItem('saved_password');
+
+    if (savedEmail) {
+        emailInput.value = savedEmail;
+    }
+    if (savedPassword) {
+        passwordInput.value = savedPassword;
+    }
+});
+
+        // --- INISIALISASI FIREBASE DINAMIS ---
+let firebaseApp;
+let firebaseDB;
+let firebaseAuth;
+
+// 1. Ambil config dari localStorage yang disimpan lewat form
+const savedConfig = JSON.parse(localStorage.getItem('firebase_config'));
+
+if (savedConfig && savedConfig.apiKey && savedConfig.projectId) {
+    try {
+        // 2. Inisialisasi menggunakan data dari localStorage
+        firebaseApp = firebase.initializeApp({
+            apiKey: savedConfig.apiKey,
+            projectId: savedConfig.projectId,
+            databaseURL: savedConfig.databaseURL // Bisa kosong jika tidak diisi
+        });
+        
+        firebaseDB = firebaseApp.database();
+        firebaseAuth = firebaseApp.auth();
+        
+        const statusEl = document.getElementById('firestore-status');
+        statusEl.innerHTML = 'Status DB: <span class="text-green-500 font-bold">Firebase RTDB & Auth Aktif</span>';
+        
+    } catch(e) {
+        document.getElementById('firestore-status').innerHTML = `Status DB: <span class="text-red-500 font-bold">GAGAL Inisialisasi: ${e.message}</span>`;
+        console.error('Firebase initialization error:', e);
+    }
+} else {
+    // 3. Jika belum ada config di localStorage
+    document.getElementById('firestore-status').innerHTML = 'Status DB: <span class="text-orange-500 font-bold">Menunggu Konfigurasi Firebase...</span>';
+}
+// --- END KONFIGURASI FIREBASE ---
+
+        // --- FUNGSI UTILITY (SAMA SEPERTI SEBELUMNYA) ---
+
+        function formatTime(hours) {
+            // ... (sama seperti sebelumnya)
+            if (!isFinite(hours) || hours <= 0) { return "N/A"; }
+            const totalSeconds = hours * 3600;
+            const roundedSeconds = Math.round(totalSeconds);
+            const h = Math.floor(roundedSeconds / 3600);
+            const m = Math.floor((roundedSeconds % 3600) / 60);
+            const s = roundedSeconds % 60;
+            let result = "";
+            if (h > 0) { result += `${h}j `; }
+            if (m > 0 || h > 0) { result += `${m}m `; }
+            if (s > 0 || (h === 0 && m === 0)) { if (roundedSeconds > 0) { result += `${s}s`; } }
+            return result.trim() || "<1s";
+        }
+        
+        // --- FUNGSI FIREBASE AUTHENTICATION ---
+        
+        // --- FUNGSI FIREBASE AUTHENTICATION TERINTEGRASI ---
+
+function login() {
+    // Ambil elemen secara dinamis untuk menghindari error 'undefined'
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginMessage = document.getElementById('login-message');
+    const loginButton = document.getElementById('login-button');
+
+    // 1. Cek apakah Firebase sudah terinisialisasi
+    if (!firebaseAuth) {
+        loginMessage.textContent = "Error: Konfigurasi Firebase belum diisi atau salah.";
+        loginMessage.className = "text-sm text-center text-orange-500 mb-4 font-bold";
+        return;
+    }
+
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+        loginMessage.textContent = "Email dan Password wajib diisi.";
+        return;
+    }
+
+    // Efek loading pada tombol
+    loginButton.disabled = true;
+    loginButton.textContent = "Mencoba Login...";
+    loginMessage.textContent = "";
+    
+    // 2. Proses Login
+    firebaseAuth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            loginMessage.textContent = "Login berhasil! Membuka Dashboard...";
+            loginMessage.className = "text-sm text-center text-green-500 mb-4 font-bold";
+            // Tampilan dashboard biasanya ditangani oleh onAuthStateChanged
+        })
+        .catch((error) => {
+            loginButton.disabled = false;
+            loginButton.textContent = "Login";
+            
+            let errorMessage;
+            switch (error.code) {
+                case 'auth/user-not-found':
+                    errorMessage = 'Email tidak terdaftar.';
+                    break;
+                case 'auth/wrong-password':
+                    errorMessage = 'Password salah.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'Format email tidak valid.';
+                    break;
+                case 'auth/network-request-failed':
+                    errorMessage = 'Koneksi internet bermasalah.';
+                    break;
+                default:
+                    errorMessage = `Error: ${error.message}`;
+            }
+            loginMessage.textContent = errorMessage;
+            loginMessage.className = "text-sm text-center text-red-600 dark:text-red-400 mb-4 font-medium";
+            console.error("Login Error:", error);
+        });
+
+
+        // ... di dalam fungsi login() ...
+     firebaseAuth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+        // SIMPAN KE LOKAL
+        localStorage.setItem('saved_email', email);
+        localStorage.setItem('saved_password', password); // Simpan password (opsional/berisiko)
+
+        loginMessage.textContent = "Login berhasil! Membuka Dashboard...";
+        // ...
+    })
+
+}
+        
+        function logout() {
+            if (firebaseAuth.currentUser) {
+                firebaseAuth.signOut().then(() => {
+                    // Berhasil logout. onAuthStateChanged akan menangani tampilan login.
+                    console.log("Logout berhasil.");
+                }).catch((error) => {
+                    console.error("Logout Error:", error);
+                });
+            }
+        }
+        
+        // --- FUNGSI TAMPILAN (RENDER LOGIN/DASHBOARD) ---
+
+        function renderLoginPage() {
+            dashboardContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+            statusMessage.textContent = "Akses ditolak. Silakan login.";
+            userInfo.textContent = "";
+            // Stop listener jika ada
+            if (firebaseDB) {
+                firebaseDB.ref('current_data').off();
+            }
+        }
+
+        function renderDashboard(user) {
+            loginContainer.classList.add('hidden');
+            dashboardContainer.classList.remove('hidden');
+            userInfo.textContent = `User: ${user.email}`;
+            
+            // 1. Mulai mendengarkan data realtime
+            listenToRealtimeData();
+            
+            // 2. Muat data grafik
+            fetchAndRenderGraphs(selectedPeriod);
+        }
+
+        // --- FUNGSI PENGAMBILAN DATA REALTIME DARI FIREBASE ---
+
+        function listenToRealtimeData() {
+            if (!firebaseDB) return;
+            
+            const currentDataRef = firebaseDB.ref('current_data');
+            
+            currentDataRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                
+                if (data) {
+                    // Konversi objek data Firebase (dengan keys seperti 'total_voltage', 'soc')
+                    // menjadi array 17 elemen (values) seperti yang diharapkan updateDashboard.
+                    
+                    const values = [];
+                    // Masukkan data ke array sesuai urutan index di ALL_DATA_MAP
+                    ALL_DATA_MAP.forEach(map => {
+                        // Gunakan nilai 0 jika data belum ada di Firebase
+                        values[map.index] = data[map.key] || 0.0;
+                    });
+                    deviceInfo.textContent =  data['deviceName'];
+                    deltaVElement.textContent = data['delta_voltage_mV'];
+                    //safetyStatusText.textContent =  data['safety_status_text'];
+                    //safetyMessage.textContent =  data['safety_message'];
+                    
+                     // Memproses data Voltage (Tegangan)
+minMaxVoltageElement.textContent = `Min: ${Number(data['min_total_voltage']).toFixed(3)} V | Max: ${Number(data['max_total_voltage']).toFixed(3)} V`;
+
+// Memproses data Current (Arus)
+minMaxCurrentElement.textContent = `Min: ${Number(data['min_current']).toFixed(3)} A | Max: ${Number(data['max_current']).toFixed(3)} A`;
+
+// Memproses data Power (Daya)
+minMaxPowerElement.textContent = `Min: ${Number(data['min_power']).toFixed(3)} W | Max: ${Number(data['max_power']).toFixed(3)} W`;
+                    
+                    // Pastikan relay status tetap 0 atau 1
+                    values[DATA_INDICES.STATUS_CHARGE] = data['relay_chg'] === 1.0 ? 1.0 : 0.0;
+                    values[DATA_INDICES.STATUS_DISCHARGE] = data['relay_dis'] === 1.0 ? 1.0 : 0.0;
+                    
+                    updateDashboard(values);
+                    statusMessage.textContent = `Terkoneksi | Data terakhir diterima: ${new Date(data.timestamp).toLocaleTimeString('id-ID')}`;
+                    errorBox.classList.add('hidden');
+                } else {
+                    statusMessage.textContent = "Terkoneksi | Menunggu data BMS pertama...";
+                    errorDetails.textContent = "Node 'current_data' kosong atau belum diisi oleh perangkat BMS.";
+                    errorBox.classList.remove('hidden');
+                }
+            }, (error) => {
+                statusMessage.textContent = "Koneksi Gagal | Error membaca Firebase.";
+                errorDetails.textContent = `Firebase Error: ${error.message}`;
+                errorBox.classList.remove('hidden');
+                console.error("Firebase Read Error:", error);
+            });
+        }
+        
+        // --- FUNGSI UPDATE DASHBOARD (SAMA SEPERTI SEBELUMNYA, DENGAN SEDIKIT PENYESUAIAN) ---
+        
+        function updateDashboard(values) {
+            // ... (Semua logika min/max, perhitungan deltaV, pewarnaan sel, 
+            // format waktu, dan update UI utama SAMA seperti kode sebelumnya) ...
+            
+            const currentTotalVoltage = values[DATA_INDICES.TOTAL_VOLTAGE];
+            const currentCurrent = values[DATA_INDICES.CURRENT];
+            const currentPower = values[DATA_INDICES.POWER];
+            
+            // --- 1. Update Min/Max Trackers ---
+            if (currentTotalVoltage > 1.0) { minTotalVoltage = Math.min(minTotalVoltage, currentTotalVoltage); maxTotalVoltage = Math.max(maxTotalVoltage, currentTotalVoltage); }
+            const minVDisplay = minTotalVoltage !== Infinity ? minTotalVoltage.toFixed(2) : '0.00';
+            const maxVDisplay = maxTotalVoltage !== -Infinity ? maxTotalVoltage.toFixed(2) : '0.00';
+           // minMaxVoltageElement.textContent = `Min: ${minVDisplay} V | Max: ${maxVDisplay} V`;
+
+            if (currentCurrent !== 0 || currentTotalVoltage > 1.0) { minCurrent = Math.min(minCurrent, currentCurrent); maxCurrent = Math.max(maxCurrent, currentCurrent); }
+            const minADisplay = minCurrent !== Infinity ? minCurrent.toFixed(2) : '0.00';
+            const maxADisplay = maxCurrent !== -Infinity ? maxCurrent.toFixed(2) : '0.00';
+            //minMaxCurrentElement.textContent = `Min: ${minADisplay} A | Max: ${maxADisplay} A`;
+
+            if (currentPower !== 0 || currentTotalVoltage > 1.0) { minPower = Math.min(minPower, currentPower); maxPower = Math.max(maxPower, currentPower); }
+            const minWDisplay = minPower !== Infinity ? minPower.toFixed(2) : '0.00';
+            const maxWDisplay = maxPower !== -Infinity ? maxPower.toFixed(2) : '0.00';
+            //minMaxPowerElement.textContent = `Min: ${minWDisplay} W | Max: ${maxWDisplay} W`;
+
+            // --- 2. Update Detail Sel & Hitung Delta V ---
+            const cellVoltages = [
+                values[DATA_INDICES.CELL_1], values[DATA_INDICES.CELL_2], values[DATA_INDICES.CELL_3], values[DATA_INDICES.CELL_4], 
+            ];
+            
+            let minCellV = Infinity;
+            let maxCellV = -Infinity;
+            let totalActiveCells = 0;
+            
+            cellVoltages.forEach((v, i) => {
+                const cellElement = cellElements[i]; 
+                const voltage = v.toFixed(3);
+                if (v > 1.0) { minCellV = Math.min(minCellV, v); maxCellV = Math.max(maxCellV, v); totalActiveCells++; }
+                
+                const isDark = document.body.classList.contains('dark');
+                let bgClass;
+                let textColor;
+
+                // Light Mode / Dark Mode Logic (Sama seperti sebelumnya)
+                if (v > 4.2) { bgClass = 'bg-red-200'; textColor = 'text-red-800'; } 
+                else if (v > 3.8) { bgClass = 'bg-green-100'; textColor = 'text-green-800'; } 
+else if (v > 3.150 && v < 3.450) { bgClass = 'bg-green-100'; textColor = 'text-green-8000'; } 
+                else if (v < 3.0 && v > 1.0) { bgClass = 'bg-yellow-100'; textColor = 'text-yellow-800'; } 
+                else if (v <= 1.0) { 
+                    if (i === 2) { bgClass = 'bg-gray-300'; textColor = 'text-gray-700'; } 
+                    else if (i === 3) { bgClass = 'bg-gray-200'; textColor = 'text-gray-500'; } 
+                    else { bgClass = 'bg-gray-200'; textColor = 'text-gray-500'; }
+                } else { bgClass = 'bg-gray-100'; textColor = 'text-gray-800'; }
+                
+                if (isDark) {
+                    if (v > 4.2) { bgClass = 'bg-red-900'; textColor = 'text-red-400'; } 
+                    else if (v > 3.8) { bgClass = 'bg-emerald-900'; textColor = 'text-green-300'; } 
+else if (v > 3.150 && v < 3.450) { bgClass = 'bg-green-100'; textColor = 'text-green-8000'; } 
+                    else if (v < 3.0 && v > 1.0) { bgClass = 'bg-yellow-900'; textColor = 'text-yellow-300'; } 
+                    else if (v <= 1.0) { 
+                        if (i === 2) { bgClass = 'bg-gray-700'; textColor = 'text-gray-400'; } 
+                        else if (i === 3) { bgClass = 'bg-gray-800'; textColor = 'text-gray-500'; } 
+                        else { bgClass = 'bg-gray-800'; textColor = 'text-gray-500'; }
+                    } else { bgClass = 'bg-gray-700'; textColor = 'text-gray-100'; }
+                }
+                
+                cellElement.querySelector('.text-xl').textContent = (v <= 1.0) ? '0.00 V' : `${voltage} V`;
+                cellElement.className = `p-3 text-center rounded-lg border transition-colors duration-300`;
+                cellElement.classList.add(bgClass);
+                cellElement.classList.add(isDark ? 'dark:border-gray-600' : 'border-gray-300'); 
+                const cellVoltageText = cellElement.querySelector('.text-xl');
+                cellVoltageText.className = 'text-xl font-bold transition-colors duration-300 ' + textColor;
+            });
+            
+            const deltaV = (maxCellV !== -Infinity && minCellV !== Infinity) ? (maxCellV - minCellV) * 1000 : 0;
+            const deltaVText = totalActiveCells >= 2 ? `${Math.round(deltaV)} mV` : 'N/A';
+            
+            //deltaVElement.textContent = `${currentCurrent.toFixed(2)} A`;
+
+            const minVText = minCellV !== Infinity ? minCellV.toFixed(3) : '0.000';
+            const maxVText = maxCellV !== -Infinity ? maxCellV.toFixed(3) : '0.000';
+            summaryMinMaxElement.textContent = `Sel Aktif (Total: ${totalActiveCells}) | Min: ${minVText} V | Max: ${maxVText} V | DeltaV: ${deltaVText}`;
+            
+            // --- 3. Update Ringkasan Utama (SOC, SOH, Suhu, Time Remaining) ---
+            const soc = Math.min(100, Math.max(0, values[DATA_INDICES.SOC].toFixed(2)));
+            const sohAvg = Math.min(100, Math.max(0, values[DATA_INDICES.SOH].toFixed(2)));
+            const maxTemp = Math.max(values[DATA_INDICES.TEMP_1], values[DATA_INDICES.TEMP_2]).toFixed(1);
+            
+            socValueElement.textContent = `${soc}%`;
+            socProgressElement.style.width = `${soc}%`;
+            sohValueElement.textContent = `${sohAvg}%`;
+            sohProgressElement.style.width = `${sohAvg}%`;
+            tempValueElement.textContent = `${maxTemp}°C`;
+
+            const remainingCap = values[DATA_INDICES.CAP_MAX]; 
+            const fullCap = values[DATA_INDICES.CAP_USED];       
+            const current = values[DATA_INDICES.CURRENT];       
+            const capToFull = fullCap - remainingCap;           
+
+            let timeRemainingText;
+            let timeToEmptyHours = 0;
+            let timeToFullHours = 0;
+
+            if (current === 0 || Math.abs(current) < 0.1) {
+                timeRemainingText = "Diam";
+            } else if (current > 0) {
+                if (remainingCap >= fullCap) { timeRemainingText = "Penuh (TTF)"; } 
+                else { timeToFullHours = capToFull / current; timeRemainingText = formatTime(timeToFullHours) + " (TTF)"; }
+            } else {
+                if (remainingCap <= 0) { timeRemainingText = "Habis (TTE)"; } 
+                else { timeToEmptyHours = remainingCap / Math.abs(current); timeRemainingText = formatTime(timeToEmptyHours) + " (TTE)"; }
+            }
+            timeRemainingElement.textContent = `Waktu Sisa: ${timeRemainingText}`;
+
+            // --- 4. Update Kelistrikan Inti ---
+            totalVoltageElement.textContent = `${currentTotalVoltage.toFixed(2)} V`;
+            currentElement.textContent = `${currentCurrent.toFixed(2)} A`;
+            powerElement.textContent = `${currentPower.toFixed(2)} W`; 
+            capacityUsedElement.textContent = `${values[DATA_INDICES.CAP_MAX].toFixed(2)} Ah`; 
+            remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_USED].toFixed(2)} Ah`;
+            
+            // --- 5. Update Parameter Detail Tambahan ---
+            let extraHtml = '';
+            ALL_DATA_MAP.filter(d => d.showInExtra).forEach(dataInfo => {
+                const value = values[dataInfo.index];
+                let formattedValue;
+                let displayUnit = dataInfo.unit;
+                let title = dataInfo.label;
+                let bgColor = document.body.classList.contains('dark') ? 'bg-gray-700' : 'bg-gray-50'; 
+                let symbolSvg = SVG_ICONS[dataInfo.iconKey]; 
+                let symbolColor = 'text-primary';
+
+                if (dataInfo.label.includes('Suhu')) { formattedValue = value.toFixed(1); symbolColor = 'text-orange-500'; } 
+                else if (dataInfo.label.includes('Kesehatan') || dataInfo.label === 'SOH') { formattedValue = value.toFixed(2); symbolColor = 'text-red-500'; } 
+                else if (dataInfo.label.includes('Relay')) {
+                    formattedValue = (value === 1.0) ? 'AKTIF' : 'NONAKTIF';
+                    displayUnit = '';
+                    symbolColor = (value === 1.0) ? 'text-accent' : 'text-gray-400';
+                    if (value === 1.0) { bgColor = document.body.classList.contains('dark') ? 'bg-emerald-900' : 'bg-green-50'; } 
+                    else { bgColor = document.body.classList.contains('dark') ? 'bg-gray-700' : 'bg-gray-50'; }
+                } else { formattedValue = value.toFixed(2); }
+                
+                extraHtml += `
+                    <div class="p-4 rounded-lg border border-gray-300 ${bgColor} dark:border-gray-600">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="w-5 h-5 ${symbolColor}"> ${symbolSvg} </span>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">${title}</p>
+                        </div>
+                        <p class="text-xl font-bold text-gray-800 dark:text-gray-100">${formattedValue} <span class="text-base font-normal text-gray-400 dark:text-gray-500">${displayUnit}</span></p>
+                    </div>
+                `;
+            });
+            extraParametersContainer.innerHTML = extraHtml;
+
+         // --- 6. Update Status Keselamatan ---
+let safetyMsg = "Semua parameter dalam batas aman.";
+let statusText = 'Normal';
+let isAnimate = false; // Flag untuk mengontrol animasi
+
+// Ambil status relay
+const isChargeOff = values[DATA_INDICES.STATUS_DISCHARGE] === 0; 
+const isDischargeOff = values[DATA_INDICES.STATUS_CHARGE] === 0;
+const isDark = document.body.classList.contains('dark');
+
+// 1. Tentukan Status dan Pesan
+if (isChargeOff && isDischargeOff) {
+    safetyMsg = "BAHAYA KRITIS: Short Circuit Terdeteksi! Semua Relay Terputus.";
+    statusText = 'SHORT CIRCUIT!';
+    isAnimate = true;
+} else if (maxTemp > 45) {
+    safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
+    statusText = 'Bahaya!';
+    isAnimate = true;
+} else if (deltaV > 10) {
+    safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
+    statusText = 'Peringatan!';
+    isAnimate = true;
+    balancingStatusElement.textContent = "Status Balancing: Balancing Active";
+    balancingStatusElement.style.color = "#F5D400";
+} else if (soc >= 100 && current > 0.1) {
+    safetyMsg = "PERINGATAN: Baterai Penuh. Hentikan pengisian.";
+    statusText = 'Penuh';
+} else if (soc <= 10) {
+    safetyMsg = "PERINGATAN: Kapasitas baterai menipis (<10%).";
+    statusText = 'Low Battery';
+}
+
+// 2. Tentukan Warna (Base Classes) berdasarkan Status dan Tema
+let safetyClass = '';
+
+if (statusText === 'SHORT CIRCUIT!') {
+    // Khusus Short Circuit dibuat mencolok baik dark maupun light
+    safetyClass = 'bg-red-600 text-white border-red-800';
+} else if (statusText === 'Bahaya!') {
+    safetyClass = isDark ? 'bg-red-900 border-red-400 text-red-300' : 'bg-red-100 text-red-700 border-red-400';
+} else if (statusText === 'Peringatan!') {
+    safetyClass = isDark ? 'bg-yellow-900 border-yellow-400 text-yellow-300' : 'bg-yellow-200 text-yellow-700 border-yellow-400';
+} else if (statusText === 'Normal') {
+    safetyClass = isDark ? 'bg-green-900 border-green-400 text-green-300' : 'bg-green-100 text-green-600 border-green-400';
+} else {
+    // Untuk Penuh atau Low Battery (Default Kuning/Oranye)
+    safetyClass = isDark ? 'bg-blue-900 border-blue-400 text-blue-300' : 'bg-blue-100 text-blue-700 border-blue-400';
+}
+
+// 3. Tambahkan Animasi jika diperlukan
+// 3. Tambahkan Animasi dan Suara jika diperlukan
+if (isAnimate) {
+    safetyClass += ' animate-pulse';
+    
+    // Tambahkan baris ini untuk membunyikan alarm
+    const alarm = document.getElementById('alarmSound');
+    if (alarm) {
+        alarm.play().catch(e => console.log("Menunggu interaksi user untuk suara"));
+    }
+}
+
+// 4. Update DOM
+safetyStatusSection.className = `status-box mb-6 border ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
+safetyStatusSection.classList.remove('hidden'); 
+safetyStatusText.textContent = statusText;
+safetyMessage.textContent = safetyMsg;
+            
+            
+            
+        }
+
+
+        // --- FUNGSI GRAFIK DARI FIREBASE LOGS ---
+        
+        function selectPeriod(period) {
+            selectedPeriod = period;
+            document.querySelectorAll('.period-button').forEach(btn => {
+                btn.classList.remove('period-active');
+                const isDark = document.body.classList.contains('dark');
+                if (isDark) {
+                    btn.classList.remove('bg-primary', 'text-white', 'shadow-md');
+                    btn.classList.add('bg-gray-800', 'text-gray-300', 'hover:bg-gray-600'); 
+                } else {
+                     btn.classList.remove('bg-gray-800', 'text-gray-300', 'hover:bg-gray-600');
+                     btn.classList.remove('bg-primary', 'text-white', 'shadow-md'); 
+                     btn.classList.add('hover:bg-gray-200'); 
+                }
+            });
+            const activeBtn = document.getElementById(`period-${period}`);
+            activeBtn.classList.add('period-active');
+            
+            fetchAndRenderGraphs(period); // Panggil ulang saat periode diubah
+        }
+
+        /**
+         * Mengelompokkan log Power (W) yang diambil dari Firebase
+         */
+        function aggregateEnergyData(logs, durationMs, numPoints) {
+            // ... (sama persis dengan logic aggregation sebelumnya) ...
+            if (logs.length === 0 || numPoints === 0) {
+                return { labels: Array(numPoints).fill('N/A'), chargeData: Array(numPoints).fill(0), dischargeData: Array(numPoints).fill(0), totalChargeWh: 0, totalDischargeWh: 0 };
+            }
+
+            const binDurationMs = durationMs / numPoints;
+            const now = Date.now();
+            const startTime = now - durationMs;
+            
+            const chargeBins = Array(numPoints).fill(0);
+            const dischargeBins = Array(numPoints).fill(0);
+            const labels = [];
+            
+            let totalChargeWh = 0;
+            let totalDischargeWh = 0;
+            const timeIntervalHours = BMS_LOG_INTERVAL_MS / (1000 * 3600); // Menggunakan konstanta interval log BMS
+            
+            logs.forEach(log => {
+                if (log.timestamp >= startTime) {
+                    let binIndex = Math.floor((log.timestamp - startTime) / binDurationMs);
+                    if (binIndex >= numPoints) { binIndex = numPoints - 1; } else if (binIndex < 0) { return; } 
+
+                    const power = log.power_W;
+                    const wh = Math.abs(power) * timeIntervalHours;
+
+                    if (power > 0.1) {
+                        chargeBins[binIndex] += wh;
+                        totalChargeWh += wh;
+                    } else if (power < -0.1) {
+                        dischargeBins[binIndex] += wh; 
+                        totalDischargeWh += wh;
+                    }
+                }
+            });
+            
+            for (let i = 0; i < numPoints; i++) {
+                const binStartMs = startTime + (i * binDurationMs);
+                const date = new Date(binStartMs);
+                
+                let label;
+                if (durationMs <= PERIOD_CONFIG['24h'].durationMs) {
+                    if (binDurationMs >= 3600 * 1000) { label = `${date.getHours().toString().padStart(2, '0')}:00`; } 
+                    else { label = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`; }
+                } else {
+                    label = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                }
+                labels.push(label);
+            }
+            
+            return { 
+                labels: labels, 
+                chargeData: chargeBins, 
+                dischargeData: dischargeBins,//.map(d => -d), 
+                totalChargeWh: totalChargeWh,
+                totalDischargeWh: totalDischargeWh
+            };
+        }
+
+        async function fetchAndRenderGraphs(period) {
+            if (!firebaseDB || !firebaseAuth.currentUser) {
+                 chartStatusElement.textContent = `Login diperlukan untuk memuat data historis.`;
+                 return;
+            }
+            
+            const config = PERIOD_CONFIG[period];
+            if (!config) return;
+
+            chartStatusElement.textContent = `Memuat data Power ${config.label} dari Firebase...`;
+
+            try {
+                // Ambil semua log historis dari Firebase Realtime Database
+                const snapshot = await firebaseDB.ref('history_logs').once('value');
+                const logsObject = snapshot.val(); 
+
+                if (!logsObject) {
+                    chartStatusElement.textContent = `Tidak ada data log historis di Firebase.`;
+                    renderEnergyCharts({labels: [], chargeData: [], dischargeData: [], totalChargeWh: 0, totalDischargeWh: 0}, config.label);
+                    return;
+                }
+
+                // Konversi objek log (timestamp-keyed) menjadi array untuk diproses
+                const allLogsArray = Object.values(logsObject);
+                allLogsArray.sort((a, b) => a.timestamp - b.timestamp); // Sortir berdasarkan waktu
+
+                const durationMs = config.durationMs;
+                const numPoints = config.points;
+                const startTime = Date.now() - durationMs;
+                
+                // Filter log berdasarkan waktu
+                const filteredLogs = allLogsArray.filter(log => log.timestamp >= startTime);
+                
+                const aggregatedData = aggregateEnergyData(filteredLogs, durationMs, numPoints);
+                
+                chartStatusElement.textContent = `Data ${filteredLogs.length} log dari Firebase, diagregasi menjadi ${numPoints} titik (${config.label}).`;
+
+                renderEnergyCharts(aggregatedData, config.label);
+
+            } catch (error) {
+                console.error("Gagal mengambil/memproses data grafik Wh dari Firebase:", error);
+                chartStatusElement.textContent = `GAGAL memuat grafik dari Firebase: ${error.message}`;
+            }
+        }
+        
+        // --- FUNGSI LAIN (SAMA SEPERTI SEBELUMNYA) ---
+        
+        function updateChartColors(isDark) {
+            // ... (sama seperti sebelumnya)
+            if (!whChart) return; 
+            const textColor = isDark ? '#f3f4f6' : '#1f2937'; 
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            whChart.options.plugins.legend.labels.color = textColor; 
+            whChart.options.scales.x.ticks.color = textColor;
+            whChart.options.scales.y.ticks.color = textColor;
+            whChart.options.scales.y.title.color = textColor;
+            whChart.options.scales.y.grid.color = gridColor;
+            whChart.update();
+        }
+
+
+// --- Definisikan SVG di Global Scope (atau di file terpisah) ---
+
+const svgMoon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+`;
+
+const svgSun = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+`;
+        
+        function applyTheme(isDark) {
+            // ... (sama seperti sebelumnya)
+            const body = document.body;
+            if (isDark) { body.classList.add('dark');if (themeIcon) themeIcon.innerHTML = svgMoon; } 
+            else { body.classList.remove('dark'); if (themeIcon) themeIcon.innerHTML = svgSun; }
+            updateChartColors(isDark);
+            selectPeriod(selectedPeriod);
+        }
+
+
+        
+        function toggleTheme() {
+            // ... (sama seperti sebelumnya)
+            const isDark = document.body.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            localStorage.setItem(THEME_KEY, newTheme);
+            applyTheme(newTheme === 'dark');
+        }
+
+        function loadTheme() {
+            // ... (sama seperti sebelumnya)
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialDark = (savedTheme === 'dark') || (savedTheme === null && prefersDark);
+            applyTheme(initialDark);
+        }
+
+        function renderEnergyCharts(data, periodLabel) { 
+            // ... (sama seperti sebelumnya)
+            totalChargeWhElement.textContent = `${data.totalChargeWh.toFixed(3)} Wh`;
+            totalDischargeWhElement.textContent = `${data.totalDischargeWh.toFixed(3)} Wh`;
+            const ctx = document.getElementById('whCombinedCanvas').getContext('2d');
+            if (whChart) whChart.destroy();
+            const isDark = document.body.classList.contains('dark');
+            const textColor = isDark ? '#f3f4f6' : '#1f2937'; 
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            
+            whChart = new Chart(ctx, {
+                type: 'bar', 
+                data: {
+                    labels: data.labels, 
+                    datasets: [
+                        { label: 'Charge (Energi Masuk)', data: data.chargeData, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 1, },
+                        { label: 'Discharge (Energi Keluar)', data: data.dischargeData, backgroundColor: 'rgba(239, 68, 68, 0.8)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 1, }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, 
+                    plugins: {
+                        legend: { display: true, labels: { color: textColor } },
+                        tooltip: { callbacks: { label: function(context) { const value = Math.abs(context.parsed.y).toFixed(3); return `${context.dataset.label}: ${value} Wh`; }, }, },
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: textColor } },
+                        y: {
+                            title: { display: true, text: 'Energi (Wh) - Charge & Discharge', color: textColor },
+                            grid: { borderDash: [5, 5], color: gridColor },
+                            ticks: { color: textColor, callback: function(value) { if (value === 0) return '0.00'; return value.toFixed(2); } }
+                        }
+                    }
+                }
+            });
+            updateChartColors(document.body.classList.contains('dark'));
+        }
+
+        // --- INTI APLIKASI: AUTH LISTENER ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+            
+            if (!firebaseAuth) {
+                renderLoginPage();
+                loginMessage.textContent = "Error: Firebase Auth gagal diinisialisasi. Periksa koneksi atau konfigurasi.";
+                return;
+            }
+
+            // Dengarkan perubahan status otentikasi
+            firebaseAuth.onAuthStateChanged((user) => {
+                if (user) {
+                    // Pengguna terautentikasi (Logged in)
+                    renderDashboard(user);
+                } else {
+                    // Pengguna tidak terautentikasi (Logged out)
+                    renderLoginPage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
