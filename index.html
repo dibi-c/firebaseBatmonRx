@@ -154,15 +154,7 @@
     </head>
 <body class="min-h-screen p-4 md:p-8 bg-gray-50 text-gray-800 dark:text-gray-100 transition-colors duration-300">
     <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
-
-
-<link rel="manifest" href="manifest.json">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-    
+    <script>
         tailwind.config = {
             darkMode: 'class', 
             theme: {
@@ -259,10 +251,25 @@
             </div>
             
 
-            <section id="safety-status-section" class="status-box mb-6 hidden bg-green-100 text-green-600 border border-green-400">
-                <h3 class="font-bold text-xl mb-1">Status Keselamatan: <span id="safety-status-text">Normal</span></h3>
-                <p class="text-sm" id="safety-message">Semua parameter dalam batas aman.</p>
-            </section>
+  <section id="safety-status-section" class="status-box mb-6 hidden p-4 rounded-lg border transition-all duration-300">
+    <div class="flex justify-between items-center cursor-pointer" id="toggle-history">
+        <div>
+            <h3 class="font-bold text-xl mb-1">Status Keselamatan: <span id="safety-status-text">Normal</span></h3>
+            <p class="text-sm" id="safety-message">Semua parameter dalam batas aman.</p>
+        </div>
+        <div id="arrow-icon" class="transform transition-transform duration-300">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+     </div>
+    </div>
+
+    <div id="history-container" class="hidden mt-4 border-t border-black/10 pt-2">
+        <div id="historyErrorDisplay"></div>
+    </div>
+</section>
+
+
             
 <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
     <div class="dashboard-card p-5 border border-white/30 dark:border-white/10 bg-transparent backdrop-blur-md rounded-xl shadow-xl border-b-4 border-b-green-500">
@@ -310,14 +317,22 @@
                     <div class="p-4 rounded-lg card-cap-rem">
                         <p class="text-sm font-semibold mb-1">Kapasitas Pabrik</p>
                         <p id="remaining-capacity" class="value-text">0 Ah</p>
+                        <p id="wh-design" class="text-xs font-medium mt-1">Wh</p>
+                    
                     </div>
+
                     <div class="p-4 rounded-lg card-cap-used">
                         <p class="text-sm font-semibold mb-1">Kapasitas Sisa</p>
                         <p id="capacity-used-value" class="value-text">0 Ah</p>
+                         <p id="wh-now" class="text-xs font-medium mt-1">Wh</p>
+                    
                     </div>
+
                     <div class="p-4 rounded-lg card-delta">
                         <p class="text-sm font-semibold mb-1">DeltaV Sel Aktif</p>
                         <p id="delta-v-value" class="value-text">0 mV</p>
+                        <p id="delta-min-max" class="text-xs font-medium mt-1">Min: 0.00 V | Max: 0.00 V</p>
+                    
                     </div>
                 </div>
             </section>
@@ -435,7 +450,10 @@
         const minMaxPowerElement = document.getElementById('min-max-power'); 
         const capacityUsedElement = document.getElementById('capacity-used-value');
         const remainingCapacityElement = document.getElementById('remaining-capacity');
+        const whDesignElement = document.getElementById('wh-design');
+        const whNowElement = document.getElementById('wh-now');
         const deltaVElement = document.getElementById('delta-v-value');
+        const deltaMinMaxElement = document.getElementById('delta-min-max');
         const socValueElement = document.getElementById('soc-value');
         const socProgressElement = document.getElementById('soc-progress');
         const sohValueElement = document.getElementById('soh-value');
@@ -451,6 +469,36 @@
         const totalDischargeWhElement = document.getElementById('total-discharge-wh');
 
         
+        const ERROR_MESSAGES = {
+    0: "Sistem Normal",
+    1: "Tegangan Sel di Bawah Ambang Batas (2.5V)",
+    3: "Kesalahan Penulisan/Pembacaan Memori EEPROM",
+    4: "Proteksi Suhu: Terdeteksi Anomali Suhu Operasional",
+    5: "Aktivasi Sistem Trip: Gagal Reaktivasi Deteksi Arus Terpasang",
+    6: "Terdeteksi Hubungan Arus Pendek (Short Circuit)",
+    7: "Proteksi Arus Berlebih (Overcurrent Detected)",
+    8: "Tegangan Baterai Sangat Rendah: Diperlukan Pengisian Daya",
+    9: "Proteksi Pengisian: Tegangan Melebihi Batas Aman",
+    10: "Tegangan Baterai Rendah: Diperlukan Pengisian Daya"
+};
+
+
+const toggleBtn = document.getElementById('toggle-history');
+const historyContainer = document.getElementById('history-container');
+const arrowIcon = document.getElementById('arrow-icon');
+
+toggleBtn.addEventListener('click', () => {
+    // Toggle class hidden
+    const isHidden = historyContainer.classList.toggle('hidden');
+    
+    // Putar panah 180 derajat saat dibuka
+    if (isHidden) {
+        arrowIcon.style.transform = 'rotate(0deg)';
+    } else {
+        arrowIcon.style.transform = 'rotate(180deg)';
+    }
+});
+
 // --- DEFINISI SVG ICONS OFFLINE ---
 const SVG_ICONS = {
     // Thermometer (Suhu)
@@ -752,6 +800,15 @@ function login() {
 
         // --- FUNGSI PENGAMBILAN DATA REALTIME DARI FIREBASE ---
 
+
+// Variabel Global untuk menyimpan data terakhir yang valid
+let lastValidTTE = 0;
+let lastValidTTF = 0;
+let lastValidSoc = 0;
+
+// --- Ambil data Error dari Firebase ---
+let errorCode ;
+let errorDesc ;
         function listenToRealtimeData() {
             if (!firebaseDB) return;
             
@@ -764,6 +821,92 @@ function login() {
                     // Konversi objek data Firebase (dengan keys seperti 'total_voltage', 'soc')
                     // menjadi array 17 elemen (values) seperti yang diharapkan updateDashboard.
                     
+// ... di dalam listener Firebase ...
+const historyList = [
+    data.history_error_1,
+    data.history_error_2,
+    data.history_error_3,
+    data.history_error_4,
+    data.history_error_5
+];
+
+const historyHtml = historyList
+    .filter(code => code !== undefined && code !== null && code !== 0) // Hanya tampilkan yang benar-benar error (> 0)
+    .map((code, index) => {
+        const msg = ERROR_MESSAGES[code] || "Record Error";
+        return `<div class="flex justify-between text-xs py-1 border-b border-black/5 last:border-0">
+                    <span class="font-mono">LOG #${index + 1}</span>
+                    <span class="font-medium text-right">${msg}</span>
+                </div>`;
+    }).join('');
+
+const historyDisplay = document.getElementById('historyErrorDisplay');
+if (historyDisplay) {
+    if (historyHtml.length > 0) {
+        historyDisplay.innerHTML = `
+            <div class="font-bold text-xs uppercase mb-2 opacity-70">Riwayat Insiden Terakhir:</div>
+            ${historyHtml}
+        `;
+    } else {
+        historyDisplay.innerHTML = `<div class="text-xs italic opacity-50 text-center py-2">Tidak ada riwayat error tercatat</div>`;
+    }
+} 
+
+
+                        // 1. Ambil nilai mentah dari Firebase
+// 1. Ambil data dari Firebase
+        const current = data.current || 0;
+        const fbSoc = data.soc;
+        const fbTTE = data.time_to_empty_hours;
+        const fbTTF = data.time_to_full_hours;
+
+        // 2. Update Memori Data Terakhir (Hanya jika data > 0)
+        if (fbSoc > 0) lastValidSoc = fbSoc;
+        if (fbTTE > 0) lastValidTTE = fbTTE;
+        if (fbTTF > 0) lastValidTTF = fbTTF;
+
+        let timeRemainingText = "";
+
+        // 3. LOGIKA FILTER (Kondisi Diam)
+        if (Math.abs(current) < 0.1) {
+            timeRemainingText = "Diam";
+        } 
+        
+        // 4. LOGIKA PENGISIAN (Charging)
+        else if (current > 0) {
+            // SYARAT PENUH: Jika SOC >= 99.9 DAN (Data Firebase memang 0 atau SOC benar-benar 100)
+            if (lastValidSoc >= 99.9 && (fbTTF === 0 || fbSoc >= 100)) {
+                timeRemainingText = "Penuh (TTF)";
+            } else {
+                // Jika data firebase 0 tapi SOC belum 100, gunakan data terakhir (Last Valid)
+                const displayTTF = (fbTTF > 0) ? fbTTF : lastValidTTF;
+                timeRemainingText = formatTime(displayTTF) + " (TTF)";
+            }
+        } 
+        
+        // 5. LOGIKA PENGURASAN (Discharging)
+        else {
+            // SYARAT HABIS: Jika SOC <= 0.5 DAN (Data Firebase memang 0 atau SOC benar-benar 0)
+            if (lastValidSoc <= 0.5 && (fbTTE === 0 || fbSoc <= 0)) {
+                timeRemainingText = "Habis (TTE)";
+            } else {
+                // Jika data firebase 0 tapi SOC masih banyak, gunakan data terakhir (Last Valid)
+                const displayTTE = (fbTTE > 0) ? fbTTE : lastValidTTE;
+                timeRemainingText = formatTime(displayTTE) + " (TTE)";
+            }
+        }
+
+        // Tampilkan ke UI
+        timeRemainingElement.textContent = `Waktu Sisa: ${timeRemainingText}`;
+
+        whDesignElement.textContent = `${(data['wh_design'] || 0).toFixed(1)} Wh`;
+        whNowElement.textContent = `${(data['wh_now'] || 0).toFixed(1)} Wh`;
+        deltaMinMaxElement.textContent = `Min: ${(data['min_cell_voltage'] || 0).toFixed(3)} V | Max: ${(data['max_cell_voltage'] || 0).toFixed(3)} V`;
+
+        // --- Ambil data Error dari Firebase ---
+errorCode = data['error_code'];
+errorDesc = ERROR_MESSAGES[errorCode] || "Error Tidak Diketahui";
+
                     const values = [];
                     // Masukkan data ke array sesuai urutan index di ALL_DATA_MAP
                     ALL_DATA_MAP.forEach(map => {
@@ -771,7 +914,7 @@ function login() {
                         values[map.index] = data[map.key] || 0.0;
                     });
                     deviceInfo.textContent =  data['deviceName'];
-                    deltaVElement.textContent = data['delta_voltage_mV'];
+                    deltaVElement.textContent = `${data['delta_voltage_mV'] || 0} mV`;
                     //safetyStatusText.textContent =  data['safety_status_text'];
                     //safetyMessage.textContent =  data['safety_message'];
                     
@@ -904,27 +1047,14 @@ else if (v > 3.150 && v < 3.450) { bgClass = 'bg-green-100'; textColor = 'text-g
             const current = values[DATA_INDICES.CURRENT];       
             const capToFull = fullCap - remainingCap;           
 
-            let timeRemainingText;
-            let timeToEmptyHours = 0;
-            let timeToFullHours = 0;
-
-            if (current === 0 || Math.abs(current) < 0.1) {
-                timeRemainingText = "Diam";
-            } else if (current > 0) {
-                if (remainingCap >= fullCap) { timeRemainingText = "Penuh (TTF)"; } 
-                else { timeToFullHours = capToFull / current; timeRemainingText = formatTime(timeToFullHours) + " (TTF)"; }
-            } else {
-                if (remainingCap <= 0) { timeRemainingText = "Habis (TTE)"; } 
-                else { timeToEmptyHours = remainingCap / Math.abs(current); timeRemainingText = formatTime(timeToEmptyHours) + " (TTE)"; }
-            }
-            timeRemainingElement.textContent = `Waktu Sisa: ${timeRemainingText}`;
+           
 
             // --- 4. Update Kelistrikan Inti ---
             totalVoltageElement.textContent = `${currentTotalVoltage.toFixed(2)} V`;
             currentElement.textContent = `${currentCurrent.toFixed(2)} A`;
             powerElement.textContent = `${currentPower.toFixed(2)} W`; 
-            capacityUsedElement.textContent = `${values[DATA_INDICES.CAP_MAX].toFixed(2)} Ah`; 
-            remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_USED].toFixed(2)} Ah`;
+            capacityUsedElement.textContent = `${values[DATA_INDICES.CAP_USED].toFixed(2)} Ah`; 
+            remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_MAX].toFixed(2)} Ah`;
             
             // --- 5. Update Parameter Detail Tambahan ---
             let extraHtml = '';
@@ -959,77 +1089,84 @@ else if (v > 3.150 && v < 3.450) { bgClass = 'bg-green-100'; textColor = 'text-g
             });
             extraParametersContainer.innerHTML = extraHtml;
 
-         // --- 6. Update Status Keselamatan ---
-let safetyMsg = "Semua parameter dalam batas aman.";
-let statusText = 'Normal';
-let isAnimate = false; // Flag untuk mengontrol animasi
 
-// Ambil status relay
-const isChargeOff = values[DATA_INDICES.STATUS_DISCHARGE] === 0; 
-const isDischargeOff = values[DATA_INDICES.STATUS_CHARGE] === 0;
+
+// Variabel default
+let safetyMsg = errorDesc; // Pesan dari Firebase
+let statusText = (errorCode === 0) ? "Normal" : `Error ${errorCode}`;
+let isAnimate = false;
 const isDark = document.body.classList.contains('dark');
 
-// 1. Tentukan Status dan Pesan
-if (isChargeOff && isDischargeOff) {
-    safetyMsg = "BAHAYA KRITIS: Short Circuit Terdeteksi! Semua Relay Terputus.";
+// 1. Logika Penentuan Status Berdasarkan Error Code & Kondisi Manual
+if (errorCode === 6) {
     statusText = 'SHORT CIRCUIT!';
     isAnimate = true;
-} else if (maxTemp > 45) {
-    safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
-    statusText = 'Bahaya!';
+} else if (errorCode !== 0) {
+    // Jika ada error dari Firebase (selain 0)
+    statusText = 'Sistem Error';
     isAnimate = true;
-} else if (deltaV > 50) {
-    safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
-    statusText = 'Peringatan!';
-    isAnimate = true;
-    balancingStatusElement.textContent = "Status Balancing: Balancing Active";
-    balancingStatusElement.style.color = "#F5D400";
-} else if (soc >= 100 && current > 0.1) {
-    safetyMsg = "PERINGATAN: Baterai Penuh. Hentikan pengisian.";
-    statusText = 'Penuh';
-} else if (soc <= 10) {
-    safetyMsg = "PERINGATAN: Kapasitas baterai menipis (<10%).";
-    statusText = 'Low Battery';
+} else {
+    // Jika Firebase bilang Normal (0), baru cek kondisi manual lainnya
+    if (maxTemp > 45) {
+        safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 45°C.";
+        statusText = 'Bahaya!';
+        isAnimate = true;
+    } else if (deltaV > 50) {
+        safetyMsg = "PERINGATAN: Delta Voltage Tinggi! Balancing diperlukan.";
+        statusText = 'Peringatan!';
+        isAnimate = true;
+        balancingStatusElement.textContent = "Status Balancing: Balancing Active";
+        balancingStatusElement.style.color = "#F5D400";
+    } else if (soc >= 100 && current > 0.1) {
+        safetyMsg = "PERINGATAN: Baterai Penuh. Hentikan pengisian.";
+        statusText = 'Penuh';
+    } else if (soc <= 10) {
+        safetyMsg = "PERINGATAN: Kapasitas baterai menipis (<10%).";
+        statusText = 'Low Battery';
+    } else {
+        safetyMsg = "Semua parameter dalam batas aman.";
+        statusText = 'Normal';
+    }
 }
 
-// 2. Tentukan Warna (Base Classes) berdasarkan Status dan Tema
-let safetyClass = '';
+if (errorCode > 0) {
+    historyContainer.classList.remove('hidden');
+    arrowIcon.style.transform = 'rotate(180deg)';
+}
 
+// 2. Tentukan Warna (Base Classes)
+let safetyClass = '';
 if (statusText === 'SHORT CIRCUIT!') {
-    // Khusus Short Circuit dibuat mencolok baik dark maupun light
     safetyClass = 'bg-red-600 text-white border-red-800';
-} else if (statusText === 'Bahaya!') {
+} else if (statusText === 'Sistem Error' || statusText === 'Bahaya!') {
     safetyClass = isDark ? 'bg-red-900 border-red-400 text-red-300' : 'bg-red-100 text-red-700 border-red-400';
 } else if (statusText === 'Peringatan!') {
     safetyClass = isDark ? 'bg-yellow-900 border-yellow-400 text-yellow-300' : 'bg-yellow-200 text-yellow-700 border-yellow-400';
 } else if (statusText === 'Normal') {
     safetyClass = isDark ? 'bg-green-900 border-green-400 text-green-300' : 'bg-green-100 text-green-600 border-green-400';
 } else {
-    // Untuk Penuh atau Low Battery (Default Kuning/Oranye)
     safetyClass = isDark ? 'bg-blue-900 border-blue-400 text-blue-300' : 'bg-blue-100 text-blue-700 border-blue-400';
 }
 
-// 3. Tambahkan Animasi jika diperlukan
-// 3. Tambahkan Animasi dan Suara jika diperlukan
+// 3. Animasi & Alarm
 if (isAnimate) {
-    safetyClass += ' animate-pulse';
-    
-    // Tambahkan baris ini untuk membunyikan alarm
+    safetyStatusSection.classList.add('animate-pulse');
     const alarm = document.getElementById('alarmSound');
-    if (alarm) {
-        alarm.play().catch(e => console.log("Menunggu interaksi user untuk suara"));
-    }
+    if (alarm) alarm.play().catch(e => {});
+} else {
+    safetyStatusSection.classList.remove('animate-pulse');
 }
 
-// 4. Update DOM
-safetyStatusSection.className = `status-box mb-6 border ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
-safetyStatusSection.classList.remove('hidden'); 
+// 4. Update DOM Utama
+safetyStatusSection.className = `status-box mb-6 border p-4 rounded-lg ${safetyClass}`;
 safetyStatusText.textContent = statusText;
 safetyMessage.textContent = safetyMsg;
+
+
+
             
             
-            
-        }
+   }
 
 
         // --- FUNGSI GRAFIK DARI FIREBASE LOGS ---
