@@ -3,8 +3,8 @@ const assetsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192new.png',
+  './icon-512new.png'
 ];
 
 // Tahap Install: Menyimpan file ke cache
