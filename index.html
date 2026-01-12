@@ -261,22 +261,40 @@
         <div id="firebase-config-form" class="space-y-4">
             <div>
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">API Key</label>
-                <input type="text" id="local-fb-apiKey" placeholder="AIzaSy..." 
+                <input type="text" id="fb-apiKey" placeholder="AIzaSy..." 
                     class="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500">
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">Project ID</label>
-                <input type="text" id="local-fb-projectId" placeholder="my-project-id" 
+                <input type="text" id="fb-projectId" placeholder="my-project-id" 
                     class="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500">
             </div>
             <div>
                 <label class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase text-blue-500 cursor-pointer hover:underline" onclick="toggleAdvancedConfig()">+ Tampilkan Database URL</label>
-                <input type="text" id="local-fb-dbUrl" placeholder="https://..." 
+                <input type="text" id="fb-databaseURL" placeholder="https://..." 
                     class="hidden w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500">
             </div>
-            <button onclick="saveLocalFirebaseConfig()" class="w-full py-2 px-4 rounded-md text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
-                Simpan Config di Browser
-            </button>
+
+            
+ <input type="file" id="fb-import-file" class="hidden" accept=".json" onchange="importConfigFile(event)">
+
+<div class="flex flex-col space-y-2 mt-2">
+    <button onclick="saveLocalFirebaseConfig()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded-lg transition-all">
+        SIMPAN KE LOCAL
+    </button>
+    
+    <div class="flex space-x-2">
+        <button onclick="exportConfigFile()" class="w-1/2 py-2 bg-gray-600 hover:bg-gray-500 text-white text-[10px] font-bold rounded-lg transition-all">
+            EXPORT JSON
+        </button>
+        <button onclick="document.getElementById('fb-import-file').click()" class="w-1/2 py-2 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold rounded-lg transition-all">
+            IMPORT JSON
+        </button>
+    </div>
+</div>
+
+
+            
         </div>
     </div>
 </div>
@@ -633,12 +651,57 @@ const SVG_ICONS = {
         // --- KONFIGURASI FIREBASE ---
         // PENTING: Ganti nilai API Key, Auth Domain, dll., dengan konfigurasi Firebase Anda yang sebenarnya.
        
+// FUNGSI EXPORT: Mengunduh config sebagai file .json
+function exportConfigFile() {
+    const config = {
+        apiKey: document.getElementById('fb-apiKey').value.trim(),
+        projectId: document.getElementById('fb-projectId').value.trim(),
+        databaseURL: document.getElementById('fb-databaseURL').value.trim()
+    };
 
+    if (!config.apiKey || !config.projectId) {
+        alert("Config kosong, tidak ada yang bisa diexport.");
+        return;
+    }
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 4));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "firebase_config.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+// FUNGSI IMPORT: Membaca file JSON dan menyimpannya ke LocalStorage
+function importConfigFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const config = JSON.parse(e.target.result);
+            
+            // Validasi sederhana
+            if (config.apiKey && config.projectId) {
+                localStorage.setItem('firebase_config', JSON.stringify(config));
+                alert('Config berhasil di-import! Halaman akan memuat ulang.');
+                location.reload(); // Refresh untuk inisialisasi Firebase baru
+            } else {
+                alert('Format file JSON tidak valid untuk Firebase Config.');
+            }
+        } catch (err) {
+            alert('Gagal membaca file: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
 // Fungsi untuk menyimpan ke LocalStorage
 function saveLocalFirebaseConfig() {
-    const apiKey = document.getElementById('local-fb-apiKey').value.trim();
-    const projectId = document.getElementById('local-fb-projectId').value.trim();
-    const databaseURL = document.getElementById('local-fb-dbUrl').value.trim();
+    const apiKey = document.getElementById('fb-apiKey').value.trim();
+    const projectId = document.getElementById('fb-projectId').value.trim();
+    const databaseURL = document.getElementById('fb-databaseURL').value.trim();
+
 
     if (!apiKey || !projectId) {
         alert("API Key dan Project ID wajib diisi!");
@@ -658,16 +721,16 @@ function saveLocalFirebaseConfig() {
 // Fungsi untuk memuat data otomatis saat halaman dibuka
 function loadSavedConfig() {
     const saved = JSON.parse(localStorage.getItem('firebase_config') || '{}');
-    if (saved.apiKey) document.getElementById('local-fb-apiKey').value = saved.apiKey;
-    if (saved.projectId) document.getElementById('local-fb-projectId').value = saved.projectId;
+    if (saved.apiKey) document.getElementById('fb-apiKey').value = saved.apiKey;
+    if (saved.projectId) document.getElementById('fb-projectId').value = saved.projectId;
     if (saved.databaseURL) {
-        document.getElementById('local-fb-dbUrl').value = saved.databaseURL;
-        document.getElementById('local-fb-dbUrl').classList.remove('hidden');
+        document.getElementById('fb-databaseURL').value = saved.databaseURL;
+        document.getElementById('fb-databaseURL').classList.remove('hidden');
     }
 }
 
 function toggleAdvancedConfig() {
-    const dbInput = document.getElementById('local-fb-dbUrl');
+    const dbInput = document.getElementById('fb-databaseURL');
     dbInput.classList.toggle('hidden');
 }
 
