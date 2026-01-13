@@ -1171,8 +1171,8 @@ else if (v > 3.150 && v < 3.450) { bgClass = 'bg-green-100'; textColor = 'text-g
 
             // --- 4. Update Kelistrikan Inti ---
             totalVoltageElement.textContent = `${currentTotalVoltage.toFixed(2)} V`;
-            currentElement.textContent = `${currentCurrent.toFixed(2)} A`;
-            powerElement.textContent = `${currentPower.toFixed(2)} W`; 
+            currentElement.textContent = `${currentCurrent.toFixed(1)} A`;
+            powerElement.textContent = `${currentPower.toFixed(1)} W`; 
             capacityUsedElement.textContent = `${values[DATA_INDICES.CAP_USED].toFixed(2)} Ah`; 
             remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_MAX].toFixed(2)} Ah`;
             
